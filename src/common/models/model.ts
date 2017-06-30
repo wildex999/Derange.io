@@ -1,0 +1,4 @@
+
+interface Model {
+    getEventId(): string;
+}
