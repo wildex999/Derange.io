@@ -9,6 +9,7 @@ import {PlayerClient} from "./playerclient";
 import {Game} from "./Game";
 import Sprite = Phaser.Sprite;
 import {IGameObject} from "./IGameObject";
+import {Tick} from "../common/models/tick";
 
 export class ClientSyncer {
     socket: SocketIOClient.Socket;
@@ -27,6 +28,9 @@ export class ClientSyncer {
         this.socket.on(SyncCreate.eventId, (data) => this.onSyncCreate(data));
         this.socket.on(SyncDestroy.eventId, (data) => this.onSyncDestroy(data));
         this.socket.on(SyncUpdate.eventId, (data) => this.onSyncUpdate(data));
+
+        //Listen for other
+        this.socket.on(Tick.eventId, (data) => this.onServerTick(data));
     }
 
     public defineClientObjects() {
@@ -112,10 +116,21 @@ export class ClientSyncer {
         if(objectInstance == null)
             throw new Error("Unable to sync object, none exist with the instance id: " + sync.instanceId);
 
-        objectInstance.syncDecode(sync.syncData);
         console.log("Sync object: " + objectInstance.syncObjectId + " => " + objectInstance.syncInstanceId);
+        objectInstance.syncDecode(sync.syncData);
 
         //TODO: Update visibility in world?
         objectInstance.syncUpdated();
+    }
+
+    onServerTick(tick: Tick) {
+        //TODO: Run multiple update to catch up to server? Allow client tick to deviate slightly?
+        this.game.serverTime = tick.time;
+        if(this.game.startTime == -1) {
+            this.game.startTime = Date.now() - this.game.serverTime;
+            this.game.clientTime = this.game.startTime;
+            console.log("Joined server on time: " + this.game.serverTime);
+        }
+        //console.log(this.game.serverTime + " | " + this.game.clientTime + " | " + "Diff: " + (this.game.serverTime - this.game.clientTime));
     }
 }

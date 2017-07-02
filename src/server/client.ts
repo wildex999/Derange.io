@@ -3,6 +3,7 @@ import {LoginResponse, LoginResponseCode} from "../common/models/LoginResponse";
 import {GameObject} from "./GameObject";
 import {Move} from "../common/models/gameobject/move";
 import {PlayerServer} from "./playerserver";
+import {World} from "./world";
 
 export class Client {
     private static clientIdCounter: number = 0;
@@ -13,9 +14,11 @@ export class Client {
     username: string;
 
     public playerInstance: PlayerServer;
+    public world: World;
 
-    constructor(socket: SocketIO.Socket, clientId?: string) {
+    constructor(socket: SocketIO.Socket, world: World, clientId?: string) {
         this.socket = socket;
+        this.world = world;
 
         if(!clientId)
             this.clientId = String(Client.clientIdCounter++);
@@ -41,8 +44,7 @@ export class Client {
 
     onMove(move: Move) {
         let position = this.playerInstance.position;
-        position.x = move.x;
-        position.y = move.y;
+        position.doMove(move, this.world.tickTime);
     }
 
 }

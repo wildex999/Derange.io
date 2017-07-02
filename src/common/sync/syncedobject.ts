@@ -100,10 +100,21 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
         };
 
         let destroy = function() {
+            //Call destroy on all children
+            for (let syncVar in this.sync) {
+                if(this["_" + syncVar] != null && this["_" + syncVar].syncDestroy)
+                    this["_" + syncVar].syncDestroy();
+            }
+
             if(!onDestroy)
                 return;
 
             this[onDestroy]();
+        };
+
+        let markChanged = function(propertyId: string) {
+            this.syncChanged[propertyId] = true;
+            this.syncHasChanged = true;
         };
 
         prot.syncHandler = null;
@@ -115,6 +126,8 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
         prot.syncCreated = created;
         prot.syncUpdated = update;
         prot.syncDestroy = destroy;
+
+        prot.markChanged = markChanged;
 
         //We want the objectId available both on instances and on the object
         target.syncObjectId = objectId;

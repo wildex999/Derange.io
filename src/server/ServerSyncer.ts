@@ -12,7 +12,7 @@ export class ServerSyncer {
     objectInstances: {[key: string]: ISyncedObject}; //Key: InstanceId
     clients: {[key: string]: Client}; //Key: ClientId
 
-    changedObjects: {[key: string]: ISyncedObject}; //Key: instanceId
+    changedObjects: {[key: string]: SyncEvent}; //Key: instanceId
 
     constructor() {
         this.clients = {};
@@ -53,9 +53,8 @@ export class ServerSyncer {
         this.objectInstances[instanceId] = objectInstance;
         console.log("AddInstance: " + objectId + " => " + instanceId);
 
-        //Sync the newly created object with clients(TODO: Send created elements in tick?)
-        let msg = new SyncCreate(objectId, instanceId, objectInstance.syncEncode(false));
-        this.sendToAll(msg);
+        //Add to next sync
+        this.changedObjects[instanceId] = new SyncEvent(SyncType.Create, objectInstance);
     }
 
     public removeInstance(objInst: any): void {
@@ -64,25 +63,36 @@ export class ServerSyncer {
         if(!this.objectInstances[instanceId])
             throw new Error("Trying to remove object instance which does not exist: " + instanceId);
 
-        //Sync the removal(TODO: Send destroyed elements in tick?)
-        let msg = new SyncDestroy(instanceId, objectInstance.syncEncode(true));
-        this.sendToAll(msg);
+        //Add to next sync
+        this.changedObjects[instanceId] = new SyncEvent(SyncType.Destroy, objectInstance);
 
         console.log("RemoveInstance: " + objectInstance.syncObjectId + " => " + instanceId);
-        delete this.objectInstances[instanceId];
-        delete this.changedObjects[instanceId];
     }
 
     /**
-     * Send a delta sync to all clients
+     * Send Create, Update and Destroy events
      */
-    public sendDeltaSync() {
+    public doSync() {
         for(let instId in this.changedObjects) {
-            let obj:ISyncedObject = this.objectInstances[instId];
-            let msgUpdate = new SyncUpdate(instId, obj.syncEncode(true));
-            console.log("Send: " + JSON.stringify(msgUpdate));
+            let syncEvent: SyncEvent = this.changedObjects[instId];
+            let obj: ISyncedObject = syncEvent.instance;
+            let msg: Model;
 
-            this.sendToAll(msgUpdate);
+            switch(syncEvent.syncType) {
+                case SyncType.Create:
+                    msg = new SyncCreate(obj.syncObjectId, obj.syncInstanceId, obj.syncEncode(false));
+                    break;
+                case SyncType.Update:
+                    msg = new SyncUpdate(obj.syncInstanceId, obj.syncEncode(true));
+                    break;
+                case SyncType.Destroy:
+                    msg = new SyncDestroy(obj.syncInstanceId, obj.syncEncode(true));
+                    delete this.objectInstances[obj.syncInstanceId];
+                    break;
+            }
+
+            console.log("Send " + syncEvent.syncType + ": " + JSON.stringify(msg));
+            this.sendToAll(msg);
         }
 
         //Clear list of changed objects
@@ -92,8 +102,8 @@ export class ServerSyncer {
     /**
      * Send the latest tick number to clients
      */
-    public sendTick(tick: number) {
-        let msg = new Tick(tick);
+    public sendTick(time: number) {
+        let msg = new Tick(time);
         this.sendToAll(msg);
     }
 
@@ -109,7 +119,10 @@ export class ServerSyncer {
      * @param objInst
      */
     onHasChange(objInst: ISyncedObject) {
-        this.changedObjects[objInst.syncInstanceId] = objInst;
+        if(this.changedObjects[objInst.syncInstanceId])
+            return;
+        //TODO: pool SyncEvent objects? A lot of GC here.
+        this.changedObjects[objInst.syncInstanceId] = new SyncEvent(SyncType.Update, objInst);
     }
 
     /**
@@ -120,7 +133,7 @@ export class ServerSyncer {
     sendFullSync(client: Client) {
         console.log("New client: " + client.clientId + ", syncing " + Object.keys(this.objectInstances).length + " objects.");
         if(Object.keys(this.changedObjects).length != 0)
-            throw new Error("Sending full sync with pending sync changes!");
+            throw new Error("Sending full sync with pending sync changes: " + JSON.stringify(this.changedObjects));
 
         for(let instId in this.objectInstances) {
             let obj: ISyncedObject = this.objectInstances[instId];
@@ -128,5 +141,21 @@ export class ServerSyncer {
 
             client.socket.emit(msgCreate.getEventId(), msgCreate);
         }
+    }
+}
+
+enum SyncType {
+    Create,
+    Update,
+    Destroy
+}
+
+class SyncEvent {
+    public syncType: SyncType;
+    public instance: ISyncedObject;
+
+    constructor(syncType: SyncType, instance: ISyncedObject) {
+        this.syncType = syncType;
+        this.instance = instance;
     }
 }

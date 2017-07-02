@@ -12,6 +12,7 @@ export interface ISyncedObject {
 
     syncEncode(delta: boolean); //Encode
     syncDecode(jsonString: string);
+    markChanged(propertyId: string); //Manually mark the specific property as changed.
 
     //Event handlers
     syncCreated(); //Added due to a SyncCreate

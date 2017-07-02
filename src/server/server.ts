@@ -15,14 +15,19 @@ export class Server {
     serverSync: ServerSyncer;
     lastLoop: number;
     world: World;
-    tickRate: number = 60;
+
+    tickRate: number = 60.0;
+    syncRate: number = 20;
 
     constructor() {
         this.clients = {};
 
         //Start World
         this.serverSync = new ServerSyncer();
-        this.world = new World(this.serverSync);
+        this.world = new World(this.serverSync, this.tickRate, this.syncRate);
+
+        //Load the map
+        this.world.loadMap("assets/maps/test.json");
 
         //Start the server
         let httpServer = http.createServer();
@@ -35,7 +40,7 @@ export class Server {
 
         //Run game loop
         this.lastLoop = new Date().getTime();
-        setInterval(() => this.gameLoop(), 1000/this.tickRate);
+        setInterval(() => this.gameLoop(), 1000.0/this.tickRate);
     }
 
     gameLoop() {
@@ -48,7 +53,7 @@ export class Server {
         console.log("Client connect: " + socket);
 
         //Create client
-        let client = new Client(socket);
+        let client = new Client(socket, this.world);
         this.clients[socket.id] = client;
 
         //Setup handlers

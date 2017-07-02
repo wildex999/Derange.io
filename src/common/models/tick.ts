@@ -2,10 +2,10 @@
 export class Tick implements Model {
     public static eventId: string = "Tick";
 
-    tick: number;
+    time: number;
 
-    constructor(tick?: number) {
-        this.tick = tick | -1;
+    constructor(time?: number) {
+        this.time = time || -1;
     }
 
     public getEventId(): string {

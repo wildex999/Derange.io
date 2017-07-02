@@ -42,8 +42,7 @@ export function Sync(propertyId?: string) {
 
         let markAsChanged = function (syncObject: ISyncedObject) {
             //console.log("Mark as changed: " + key + " in " + JSON.stringify(syncObject) + " | " + syncObject.syncObjectId);
-            syncObject.syncHasChanged = true;
-            syncObject.syncChanged[propertyId] = true;
+            syncObject.markChanged(propertyId);
         };
 
         let encode;
@@ -53,7 +52,7 @@ export function Sync(propertyId?: string) {
         if (type.syncObjectId == null) {
             //Normal property
             encode = function (delta: boolean): string {
-                //console.log("Encode: " + _val + " => " + JSON.stringify(_val));
+                //console.log("Encode: " + key + " => " + JSON.stringify(this["_" + key]));
                 return JSON.stringify(this["_" + key]);
             };
 
@@ -71,6 +70,7 @@ export function Sync(propertyId?: string) {
             };
 
             decode = function (value: string): any {
+                let isNew = false;
                 let obj: ISyncedObject = this["_" + key];
                 if(obj == null) {
                     //Create new instance of type
@@ -79,9 +79,15 @@ export function Sync(propertyId?: string) {
 
                     obj = new type();
                     this["_" + key] = obj;
+                    isNew = true;
                 }
 
                 obj.syncDecode(value);
+
+                if(isNew)
+                    obj.syncCreated();
+                else
+                    obj.syncUpdated();
             }
         }
 
