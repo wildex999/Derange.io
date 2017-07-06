@@ -9,6 +9,7 @@ import {Map} from "../common/map/map";
 import {TileObject} from "../common/map/TileObject";
 import * as fs from "fs";
 import {MapDownload} from "../common/models/MapDownload";
+import {EnemyDummy} from "./entities/EnemyDummy";
 
 export class World extends PhysicsWorld {
     syncer: ServerSyncer;
@@ -39,6 +40,10 @@ export class World extends PhysicsWorld {
         this.newClients = {};
         this.entities = {};
         this.syncCount = this.tickRate/this.syncRate;
+
+        let enemy = new EnemyDummy(this);
+        enemy.setPosition(100, 100);
+        this.addEntity(enemy);
     }
 
     public loadMap(mapFile: string) {

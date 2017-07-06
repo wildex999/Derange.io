@@ -91,7 +91,7 @@ export class ServerSyncer {
                     break;
             }
 
-            console.log("Send " + syncEvent.syncType + ": " + JSON.stringify(msg));
+            //console.log("Send " + syncEvent.syncType + ": " + JSON.stringify(msg));
             this.sendToAll(msg);
         }
 

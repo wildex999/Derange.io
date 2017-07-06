@@ -28,6 +28,7 @@ export class Assets {
     /** Sprites **/
     public static spritesDir = Assets.assetsDir + "sprites/";
     public static player = new ImageAsset("player", Assets.spritesDir + "player.png");
+    public static enemy = new ImageAsset("enemy", Assets.spritesDir + "enemy.png");
 
     /** TileSets **/
     public static tileSetsDir = Assets.assetsDir + "tiles/";

@@ -10,6 +10,7 @@ import {Game} from "./Game";
 import Sprite = Phaser.Sprite;
 import {IGameObject} from "./IGameObject";
 import {Tick} from "../common/models/tick";
+import {EnemyDummy} from "./entities/EnemyDummy";
 
 export class ClientSyncer {
     socket: SocketIOClient.Socket;
@@ -35,6 +36,7 @@ export class ClientSyncer {
 
     public defineClientObjects() {
         this.defineObject(PlayerClient);
+        this.defineObject(EnemyDummy);
     }
 
     public defineObject(defineObject: any): void {

@@ -1,5 +1,7 @@
 
-export class Movement {
+import {IEvent} from "./IEvent";
+
+export class Movement implements IEvent {
     public time: number; //Time this movement started(Since world start)
 
     //The starting location of the movement

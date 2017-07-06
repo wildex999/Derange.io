@@ -6,14 +6,22 @@ import {StateLoad} from "./stateload";
 import {Move} from "../common/models/gameobject/move";
 import {Tick} from "../common/models/tick";
 import {Camera} from "./Camera";
+import {InputManager} from "./InputManager";
+import Group = Phaser.Group;
 
 export class Game extends Phaser.Game {
     public client: Client;
     public myCam: Camera;
+    public inputManager: InputManager;
 
     public startTime: number;
     public clientTime: number;
     public serverTime: number;
+
+    public layerFront: Group;
+    public layerMid: Group;
+    public layerBack: Group;
+
 
     constructor() {
         super(640, 400, Phaser.AUTO, "content");
@@ -39,5 +47,6 @@ export class Game extends Phaser.Game {
      */
     public doMove(move: Move) {
         this.client.socket.emit(move.getEventId(), move);
+        //console.log("Client Move: " + JSON.stringify(move));
     }
 }

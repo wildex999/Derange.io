@@ -8,15 +8,17 @@ import {IGameObject} from "./IGameObject";
 import {Assets} from "./assets";
 import {SyncedMovement} from "../common/SyncedMovement";
 import P2 = Phaser.Physics.P2;
+import {Keys} from "./Keys";
 
 @SyncedObject("Player", "onSyncCreated", "onSyncUpdate", "onSyncDestroy")
 export class PlayerClient extends Sprite implements IGameObject{
     game: Game;
     body: P2.Body;
 
-    cursor: CursorKeys;
     isMoving: boolean;
-
+    prevX: number;
+    prevY: number;
+    prevTime: number;
 
 
     @Sync()
@@ -33,7 +35,7 @@ export class PlayerClient extends Sprite implements IGameObject{
         //this.pivot.set(8, 8);
         this.anchor.setTo(0.5, 0.5);
 
-        this.game.myCam.add(this);
+        this.game.layerMid.add(this);
     }
 
     public onSyncCreated() {
@@ -55,10 +57,9 @@ export class PlayerClient extends Sprite implements IGameObject{
 
             //Collision
             this.body.setCircle(5, -1, 5);
-            //this.body.debug = true;
-            //this.game.myCam.add(this.body.debugBody);
+            this.body.debug = true;
+            this.game.myCam.add(this.body.debugBody);
 
-            this.cursor = this.game.input.keyboard.createCursorKeys();
             this.game.myCam.follow(this);
         } else {
             this.serverPosition.timeDelay = 100; //Allow for some lag
@@ -75,6 +76,8 @@ export class PlayerClient extends Sprite implements IGameObject{
             this.updateLocal();
         else {
             this.serverPosition.updateClient(this.game.clientTime);
+            //console.log("Test: " + JSON.stringify(this.serverPosition.events));
+            //console.log("MOVE: " + this.serverPosition.currentEvent.time + " > " + this.game.clientTime + " = " + this.serverPosition.x + " | " + this.serverPosition.y + " Delta: " + (this.serverPosition.x - this.x) + " | " + (this.serverPosition.y - this.y));
             this.x = this.serverPosition.x;
             this.y = this.serverPosition.y;
         }
@@ -94,35 +97,38 @@ export class PlayerClient extends Sprite implements IGameObject{
         this.body.setZeroVelocity();
         this.body.setZeroForce();
 
-        //Start position
-        let sx = this.x;
-        let sy = this.y;
-
         let wasMoving = this.isMoving;
         this.isMoving = false;
 
         let speed = 32;
-        if(this.cursor.up.isDown) {
+        if(this.game.inputManager.isDown(Keys.Up)) {
             this.isMoving = true;
             this.body.moveUp(speed);
         }
-        if(this.cursor.down.isDown) {
+        if(this.game.inputManager.isDown(Keys.Down)) {
             this.isMoving = true;
             this.body.moveDown(speed);
         }
-        if(this.cursor.left.isDown) {
+        if(this.game.inputManager.isDown(Keys.Left)) {
             this.isMoving = true;
             this.body.moveLeft(speed);
         }
-        if(this.cursor.right.isDown) {
+        if(this.game.inputManager.isDown(Keys.Right)) {
             this.isMoving = true;
             this.body.moveRight(speed);
         }
 
-        if(this.isMoving) //Send movement
-            this.game.doMove(new Move(sx, sy, this.x - sx, this.y - sy));
-        else if(wasMoving) //Send movement stop
-            this.game.doMove(new Move(sx, sy, 0, 0));
+        if(this.isMoving) { //Send movement
+            let timeMult = ((this.game.clientTime - this.prevTime) / 1000);
+            let dx = (this.x - this.prevX) / timeMult;
+            let dy = (this.y - this.prevY) / timeMult;
+            this.game.doMove(new Move(this.prevX, this.prevY, dx, dy));
+        } else if(wasMoving) //Send movement stop only once
+            this.game.doMove(new Move(this.x, this.y, 0, 0));
+
+        this.prevX = this.x;
+        this.prevY = this.y;
+        this.prevTime = this.game.clientTime;
     }
 
 }

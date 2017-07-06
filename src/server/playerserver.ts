@@ -18,6 +18,7 @@ export class PlayerServer implements GameObject {
         this.clientId = clientId;
         this.world = world;
         this.position = new SyncedMovement();
+        this.position.historyTime = 100; //Allow for player to interpolate old positions
     }
 
     public setPosition(x: number, y: number) {

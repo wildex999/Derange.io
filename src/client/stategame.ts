@@ -52,14 +52,21 @@ export class StateGame extends Phaser.State {
 
         //Setup layers
         let mainLayer = this.map.createLayer("MainLayer");
+        let overLayer = this.map.createLayer("OverLayer");
         let collisionLayer = this.map.createLayer("CollisionLayer");
         collisionLayer.visible = false;
 
         //Setup collisions
         this.map.setCollisionBetween(0, 200, true, collisionLayer);
         this.game.physics.p2.convertTilemap(this.map, collisionLayer);
+        this.game.physics.p2.convertCollisionObjects(this.map, "CollisionObjects");
 
         mainLayer.resizeWorld();
-        this.game.myCam.add(mainLayer);
+        this.game.myCam.add(this.game.layerBack);
+        this.game.myCam.add(this.game.layerMid);
+        this.game.myCam.add(this.game.layerFront);
+
+        this.game.layerBack.add(mainLayer);
+        this.game.layerFront.add(overLayer);
     }
 }
