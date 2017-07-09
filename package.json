@@ -13,6 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^7.0.29",
+    "@types/p2": "^0.7.30",
+    "@types/query-string": "^4.3.1",
     "@types/react": "^15.0.27",
     "@types/react-dom": "^15.5.0",
     "@types/reflect-metadata": "0.0.5",
@@ -21,6 +23,7 @@
     "expose-loader": "^0.7.3",
     "p2": "^0.7.1",
     "phaser-ce": "^2.8.1",
+    "query-string": "^4.3.4",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
     "reflect-metadata": "^0.1.10",

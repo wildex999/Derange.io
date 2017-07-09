@@ -1,3 +1,4 @@
+///<reference path="model.ts"/>
 
 export class MapDownload implements Model {
     public static eventId = "MapDownload";

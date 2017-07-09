@@ -1,3 +1,5 @@
+///<reference path="model.ts"/>
+
 export class Login implements Model {
     public static eventId = "login";
 

@@ -51,7 +51,7 @@ export function Sync(propertyId?: string) {
         //Different encode/decode if the target is a SyncedObject
         if (type.syncObjectId == null) {
             //Normal property
-            encode = function (delta: boolean): string {
+            encode = function (delta: boolean, resetChanged: boolean): string {
                 //console.log("Encode: " + key + " => " + JSON.stringify(this["_" + key]));
                 return JSON.stringify(this["_" + key]);
             };
@@ -62,11 +62,11 @@ export function Sync(propertyId?: string) {
             };
         } else {
             //SyncedObject
-            encode = function (delta: boolean): string {
+            encode = function (delta: boolean, resetChanged: boolean): string {
                 if (this["_" + key] == null)
                     return null;
 
-                return (<ISyncedObject>this["_" + key]).syncEncode(delta);
+                return (<ISyncedObject>this["_" + key]).syncEncode(delta, resetChanged);
             };
 
             decode = function (value: string): any {

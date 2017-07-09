@@ -10,7 +10,7 @@ export interface ISyncedObject {
     syncHasChanged: boolean; //Whether or not this SyncedObject has any changes to sync.
     syncHandler: (objInstance: ISyncedObject) => void; //Set handler to call when syncHasChanged is set to true.
 
-    syncEncode(delta: boolean); //Encode
+    syncEncode(delta: boolean, resetChanged: boolean); //Encode
     syncDecode(jsonString: string);
     markChanged(propertyId: string); //Manually mark the specific property as changed.
 

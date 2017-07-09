@@ -2,10 +2,12 @@
 export class Tick implements Model {
     public static eventId: string = "Tick";
 
-    time: number;
+    tick: number;
+    remoteTick: number; //Last processed tick from other end
 
-    constructor(time?: number) {
-        this.time = time || -1;
+    constructor(tick: number, remoteTick: number) {
+        this.tick = tick;
+        this.remoteTick = remoteTick;
     }
 
     public getEventId(): string {

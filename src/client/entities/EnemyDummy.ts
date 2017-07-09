@@ -7,14 +7,18 @@ import {SyncedMovement} from "../../common/SyncedMovement";
 import {Sync} from "../../common/sync/Sync";
 import {Assets} from "../assets";
 import {SyncedObject} from "../../common/sync/syncedobject";
+import {Vector} from "../../common/Vector";
 
 @SyncedObject(null, "onSyncCreated")
 export class EnemyDummy extends Sprite implements IGameObject {
+    instanceId: number;
     game: Game;
     body: P2.Body;
 
+    //@Sync("position")
+    //serverPosition: SyncedMovement;
     @Sync("position")
-    serverPosition: SyncedMovement;
+    serverPosition: Vector;
 
     public init(game: Game) {
         Phaser.Sprite.call(this, game, this.serverPosition.x, this.serverPosition.y, Assets.enemy.key);
@@ -36,7 +40,7 @@ export class EnemyDummy extends Sprite implements IGameObject {
         this.body.fixedRotation = true;
 
         //Set initial position
-        this.serverPosition.updateClient(this.game.clientTime);
+        //this.serverPosition.updateClient(this.game.clientTick);
         this.body.reset(this.serverPosition.x, this.serverPosition.y, true, true);
         this.anchor.setTo(0.5, 0.5);
 
@@ -54,10 +58,10 @@ export class EnemyDummy extends Sprite implements IGameObject {
         this.body.debug = true;
         this.game.myCam.add(this.body.debugBody);
 
-        this.serverPosition.timeDelay = 100; //Allow for some lag
+        //this.serverPosition.timeDelay = 100; //Allow for some lag
 
         //Set initial position
-        this.serverPosition.updateClient(this.game.clientTime);
+        //this.serverPosition.updateClient(this.game.clientTime);
         this.body.reset(this.serverPosition.x, this.serverPosition.y);
     }
 
@@ -65,7 +69,7 @@ export class EnemyDummy extends Sprite implements IGameObject {
         this.body.setZeroVelocity();
         this.body.setZeroForce();
 
-        this.serverPosition.updateClient(this.game.clientTime);
+        //this.serverPosition.updateClient(this.game.clientTime);
         //console.log("Test: " + JSON.stringify(this.serverPosition.events));
         //console.log("MOVE: " + this.serverPosition.currentEvent.time + " > " + this.game.clientTime + " = " + this.serverPosition.x + " | " + this.serverPosition.y + " Delta: " + (this.serverPosition.x - this.x) + " | " + (this.serverPosition.y - this.y));
         this.body.reset(this.serverPosition.x, this.serverPosition.y);

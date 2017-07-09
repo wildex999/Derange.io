@@ -1,5 +1,6 @@
 
 import {TileObject} from "./TileObject";
+import * as p2js from "p2"
 
 export class Map {
     width: number;
@@ -41,6 +42,53 @@ export class Map {
                     return obj;
             }
         }
+    }
+
+    /**
+     * Goes trough all tiles in a layer, and creates a physics Body with a collider for each.
+     * @param layerName
+     */
+    public createCollidersFromLayer(layerName: string): p2js.Body[] {
+        let bodies: p2js.Body[] = [];
+
+        let layer: Layer = null;
+        for(let l of this.layers) {
+            if(l.name == layerName) {
+                layer = l;
+                break;
+            }
+        }
+
+        if(layer == null)
+            return bodies;
+
+        let tileLayer: TileLayer = <TileLayer>layer;
+
+        let width = tileLayer.width;
+        let height = tileLayer.height;
+        let tw = this.tilewidth;
+        let th = this.tileheight;
+        let centerX = this.tilewidth/2;
+        let centerY = this.tileheight/2;
+        for(let y = 0; y < height; y++) {
+            for(let x = 0; x < width; x++) {
+                if(tileLayer.data[(y*width) + x] == 0)
+                    continue;
+
+                let body = new p2js.Body();
+                body.mass = 0;
+                body.type = p2js.Body.STATIC;
+                body.damping = 0;
+                body.position[0] = layer.x + (x * tw) + centerX;
+                body.position[1] = layer.y + (y * th) + centerY;
+                let shape = new p2js.Box({width: tw, height: th});
+                body.addShape(shape);
+
+                bodies.push(body);
+            }
+        }
+
+        return bodies;
     }
 }
 

@@ -1,6 +1,3 @@
-import * as p2 from 'p2';
-import PhysicsWorld = p2.World;
-
 import {ServerSyncer} from "./ServerSyncer";
 import {Client} from "./client";
 import {PlayerServer} from "./playerserver";
@@ -9,17 +6,20 @@ import {Map} from "../common/map/map";
 import {TileObject} from "../common/map/TileObject";
 import * as fs from "fs";
 import {MapDownload} from "../common/models/MapDownload";
-import {EnemyDummy} from "./entities/EnemyDummy";
 
-export class World extends PhysicsWorld {
+import * as p2js from 'p2'
+import PhysicsWorld = p2js.World;
+
+export class World {
     syncer: ServerSyncer;
     newClients: {[key: string]: Client}; //New clients which require full sync. Key: ClientId
 
+    physicsWorld: PhysicsWorld;
     entities: {[key: number]: GameObject}; //All object instances in the world
     instanceCount: number = 0;
 
-    worldStart: number;
-    tickTime: number; //Milliseconds since world start in this tick
+    tickDelta: number;
+    currentTick: number;
 
     tickRate: number;
     syncRate: number;
@@ -29,9 +29,10 @@ export class World extends PhysicsWorld {
     spawn: TileObject;
 
     constructor(syncer: ServerSyncer, tickRate: number, syncRate: number) {
-        super();
-
-        this.worldStart = new Date().getTime();
+        this.physicsWorld = new PhysicsWorld();
+        this.physicsWorld.gravity[0] = 0;
+        this.physicsWorld.gravity[1] = 0;
+        this.physicsWorld.applyGravity = false;
 
         this.syncer = syncer;
         this.tickRate = tickRate;
@@ -41,9 +42,9 @@ export class World extends PhysicsWorld {
         this.entities = {};
         this.syncCount = this.tickRate/this.syncRate;
 
-        let enemy = new EnemyDummy(this);
-        enemy.setPosition(100, 100);
-        this.addEntity(enemy);
+        //let enemy = new EnemyDummy(this);
+        //enemy.setPosition(100, 100);
+        //this.addEntity(enemy);
     }
 
     public loadMap(mapFile: string) {
@@ -53,13 +54,19 @@ export class World extends PhysicsWorld {
 
         this.spawn = this.map.findSpawn();
 
+        //Setup colliders
+        let colliders = this.map.createCollidersFromLayer("CollisionLayer");
+        console.log("Adding " + colliders.length + " colliders.");
+        for(let collider of colliders) {
+            this.physicsWorld.addBody(collider);
+        }
+
         console.log("Got Spawn: " + this.spawn.x + " | " + this.spawn.y);
     }
 
-    public tick() {
-        let lastTick = this.tickTime;
-        this.tickTime = new Date().getTime() - this.worldStart;
-        //console.log("Tick: " + (this.tickTime - lastTick));
+    public tick(tickDelta: number, currentTick: number) {
+        this.tickDelta = tickDelta;
+        this.currentTick = currentTick;
 
         //Add new clients to syncer and send initial sync
         for(let clientId in this.newClients) {
@@ -80,20 +87,28 @@ export class World extends PhysicsWorld {
         }
         this.newClients = {};
 
-        //Update time for clients
-        this.syncer.sendTick(this.tickTime);
+        //Apply actions from clients
+        for(let clientId in this.syncer.clients) {
+            let client: Client = this.syncer.clients[clientId];
+            client.applyActions();
+        }
 
-        //Update World
+        //Update Physics
+        this.physicsWorld.step(1/this.tickRate);
+
+        //Update Entities
         for(let instanceId in this.entities) {
             let objInst = this.entities[instanceId];
-            objInst.onUpdate(this.tickTime);
+            objInst.onUpdate();
         }
 
         //Send delta sync to existing clients
+        this.syncer.sendTick(this.currentTick);
         if(this.syncCount-- <= 0) {
             this.syncer.doSync();
             this.syncCount = this.tickRate/this.syncRate;
         }
+
     }
 
     public addEntity(objInst: GameObject) {

@@ -24,7 +24,10 @@ module.exports = [{
             {enforce: "pre", test: /\.js$/, loader: "source-map-loader"},
             {test: /p2\.js$/, loader: 'expose-loader?p2' },
             {test: /\.json$/, loader: "json-loader"},
-            {test: /\.ts$/, loader: "awesome-typescript-loader"}
+            {
+                test: /\.ts$/,
+                loader: "awesome-typescript-loader"
+            }
         ]
     },
     externals: [nodeExternals()]

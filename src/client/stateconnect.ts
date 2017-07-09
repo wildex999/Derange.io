@@ -5,6 +5,7 @@ import {Client} from "./client";
 import {Game} from "./Game";
 import {LoginResponse} from "../common/models/LoginResponse";
 import {StateGame} from "./stategame";
+import * as QueryString from "query-string";
 
 /**
     * Connecting to the server, logging in and joining a world.
@@ -15,7 +16,11 @@ export class StateConnect extends Phaser.State {
     client: Client;
 
     create() {
-        let socket: SocketIOClient.Socket = io('http://localhost:8765');
+        let parsed = QueryString.parse(location.search);
+        let server = parsed["server"];
+        if(!server)
+            server = "localhost";
+        let socket: SocketIOClient.Socket = io('http://' + server + ':8765');
 
         //Send our protocol version for verification. If this does not match with the server, we will be disconnected.
         let protocol: Protocol = new Protocol(Version.protocolVersion);

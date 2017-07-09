@@ -110,7 +110,7 @@ export class ClientSyncer {
         objectInstance.syncDestroy();
 
         this.removeInstance(sync.instanceId);
-        (<Sprite><any>objectInstance).destroy();
+        (<IGameObject><any>objectInstance).destroy();
     }
 
     onSyncUpdate(sync: SyncUpdate) {
@@ -118,7 +118,7 @@ export class ClientSyncer {
         if(objectInstance == null)
             throw new Error("Unable to sync object, none exist with the instance id: " + sync.instanceId);
 
-        console.log("Sync object: " + objectInstance.syncObjectId + " => " + objectInstance.syncInstanceId);
+        //console.log("Sync object: " + objectInstance.syncObjectId + " => " + objectInstance.syncInstanceId);
         objectInstance.syncDecode(sync.syncData);
 
         //TODO: Update visibility in world?
@@ -126,13 +126,23 @@ export class ClientSyncer {
     }
 
     onServerTick(tick: Tick) {
-        //TODO: Run multiple update to catch up to server? Allow client tick to deviate slightly?
-        this.game.serverTime = tick.time;
-        if(this.game.startTime == -1) {
-            this.game.startTime = Date.now() - this.game.serverTime;
-            this.game.clientTime = this.game.startTime;
-            console.log("Joined server on time: " + this.game.serverTime);
+        //Whenever we receive an update from server, we sync our own time to that
+        this.game.serverTick = tick.tick;
+        this.game.clientRemoteTick = tick.remoteTick;
+        //console.log("Tick: " + tick.tick + " | " + tick.remoteTick);
+        if(this.game.clientTick == -1) {
+            this.game.clientTick = tick.tick;
+            console.log("Joined server on tick: " + this.game.serverTick);
         }
+
+        //Re-sync clock if they have drifted too much(I.e inactive tab or network conditions)
+        //TODO: Allow for more drift if there is a lot of ping variation(Jitter)?
+        let diff = this.game.serverTick - this.game.clientTick;
+        if(Math.abs(diff) > (this.game.tickRate / this.game.syncRate) * 2) {
+            this.game.clientTick = this.game.serverTick;
+        }
+
+        //console.log("Tick, server: " + this.game.serverTick + " client: " + this.game.clientTick + " Diff: " + (this.game.serverTick - this.game.clientTick));
         //console.log(this.game.serverTime + " | " + this.game.clientTime + " | " + "Diff: " + (this.game.serverTime - this.game.clientTime));
     }
 }

@@ -1,6 +1,6 @@
 
 import {Game} from "./Game";
-import {Keys} from "./Keys";
+import {Keys} from "../common/Keys";
 
 export class InputManager {
     game: Game;
@@ -15,6 +15,7 @@ export class InputManager {
         this.map(Keys.Down, Phaser.Keyboard.S);
         this.map(Keys.Left, Phaser.Keyboard.A);
         this.map(Keys.Right, Phaser.Keyboard.D);
+        this.map(Keys.DebugPosition, Phaser.Keyboard.F3);
     }
 
     public map(key: Keys, code: number) {
@@ -40,6 +41,23 @@ export class InputManager {
 
         return input.isDown;
     }
+
+    public justDown(key: Keys): boolean {
+        let input = this.keys[key];
+        if(input == null)
+            return false;
+
+        return input.justDown;
+    }
+
+    public justUp(key: Keys): boolean {
+        let input = this.keys[key];
+        if(input == null)
+            return false;
+
+        return input.justUp;
+    }
+
 }
 
 class MappedKey {

@@ -80,13 +80,13 @@ export class ServerSyncer {
 
             switch(syncEvent.syncType) {
                 case SyncType.Create:
-                    msg = new SyncCreate(obj.syncObjectId, obj.syncInstanceId, obj.syncEncode(false));
+                    msg = new SyncCreate(obj.syncObjectId, obj.syncInstanceId, obj.syncEncode(false, true));
                     break;
                 case SyncType.Update:
-                    msg = new SyncUpdate(obj.syncInstanceId, obj.syncEncode(true));
+                    msg = new SyncUpdate(obj.syncInstanceId, obj.syncEncode(true, true));
                     break;
                 case SyncType.Destroy:
-                    msg = new SyncDestroy(obj.syncInstanceId, obj.syncEncode(true));
+                    msg = new SyncDestroy(obj.syncInstanceId, obj.syncEncode(true, true));
                     delete this.objectInstances[obj.syncInstanceId];
                     break;
             }
@@ -100,11 +100,14 @@ export class ServerSyncer {
     }
 
     /**
-     * Send the latest tick number to clients
+     * Send the latest tick to clients
      */
-    public sendTick(time: number) {
-        let msg = new Tick(time);
-        this.sendToAll(msg);
+    public sendTick(tick: number) {
+        for(let clientId in this.clients) {
+            let client: Client = this.clients[clientId];
+            let msg = new Tick(tick, client.clientTick);
+            client.socket.emit(msg.getEventId(), msg);
+        }
     }
 
     sendToAll(msg: Model) {
@@ -127,17 +130,14 @@ export class ServerSyncer {
 
     /**
      * Send a full sync of all objects to the given Client.
-     * Should always be called AFTER normal update, as this clears changed lists in objects.
      * @param client
      */
     sendFullSync(client: Client) {
         console.log("New client: " + client.clientId + ", syncing " + Object.keys(this.objectInstances).length + " objects.");
-        if(Object.keys(this.changedObjects).length != 0)
-            throw new Error("Sending full sync with pending sync changes: " + JSON.stringify(this.changedObjects));
 
         for(let instId in this.objectInstances) {
             let obj: ISyncedObject = this.objectInstances[instId];
-            let msgCreate = new SyncCreate(obj.syncObjectId, instId, obj.syncEncode(false));
+            let msgCreate = new SyncCreate(obj.syncObjectId, instId, obj.syncEncode(false, false));
 
             client.socket.emit(msgCreate.getEventId(), msgCreate);
         }

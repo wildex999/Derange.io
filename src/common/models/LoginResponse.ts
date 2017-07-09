@@ -1,3 +1,4 @@
+///<reference path="model.ts"/>
 
 export class LoginResponse implements Model {
     public static eventId = "loginResponse";

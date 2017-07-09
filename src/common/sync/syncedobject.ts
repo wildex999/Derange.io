@@ -35,7 +35,7 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
          * Call encode on all synced variables, and add them to a map, which is then turned into a JSON string.
          * @param delta Whether or not to only include the changes since the last call to encode
          */
-        let encode = function (delta: boolean): string {
+        let encode = function (delta: boolean, resetChanged: boolean): string {
             if (delta && (!this.syncHasChanged || !this.syncChanged))
                 return "{}";
 
@@ -48,15 +48,17 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
             //console.log("EncodeDelta: " + objectId + " | " + delta + " | " + JSON.stringify(syncList));
 
             for (let syncVar in syncList) {
-                let val = this["syncEncode_" + syncVar](delta);
+                let val = this["syncEncode_" + syncVar](delta, resetChanged);
                 if(val == undefined) //Even undefined must be synced
                     val = null;
                 syncedVars[syncVar] = val;
             }
 
             //Reset sync check
-            this.syncHasChanged = false;
-            this.syncChanged = {};
+            if(resetChanged) {
+                this.syncHasChanged = false;
+                this.syncChanged = {};
+            }
 
             //console.log("SyncObject encode: " + this.syncInstanceId + " | " + syncedVars + " => " + JSON.stringify(syncedVars));
             return JSON.stringify(syncedVars);
@@ -123,9 +125,12 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
         prot.syncEncode = encode;
         prot.syncDecode = decode;
 
-        prot.syncCreated = created;
-        prot.syncUpdated = update;
-        prot.syncDestroy = destroy;
+        if(onCreated != null || prot.syncCreated == null)
+            prot.syncCreated = created;
+        if(onUpdate != null || prot.syncUpdated == null)
+            prot.syncUpdated = update;
+        if(onDestroy != null || prot.syncDestroy == null)
+            prot.syncDestroy = destroy;
 
         prot.markChanged = markChanged;
 

@@ -13,11 +13,13 @@ export class Server {
     public clients: {[key: string]: Client}; //Key: SocketId
 
     serverSync: ServerSyncer;
-    lastLoop: number;
     world: World;
 
-    tickRate: number = 60.0;
     syncRate: number = 20;
+    tickRate: number = 60.0;
+    currentTick: number = 0;
+    loopStart: number;
+    tickTime: number;
 
     constructor() {
         this.clients = {};
@@ -39,14 +41,22 @@ export class Server {
         console.log("Started server");
 
         //Run game loop
-        this.lastLoop = new Date().getTime();
-        setInterval(() => this.gameLoop(), 1000.0/this.tickRate);
+        this.loopStart = Date.now();
+        this.tickTime = 1000.0/this.tickRate;
+        setTimeout(() => this.gameLoop(), this.tickTime);
     }
 
     gameLoop() {
         //console.log("Loop: " + (new Date().getTime() - this.lastLoop));
-        this.lastLoop = new Date().getTime();
-        this.world.tick();
+        this.world.tick(this.tickTime, this.currentTick);
+
+        this.currentTick++;
+        let nextTick = this.loopStart + (this.currentTick * this.tickTime);
+        let nextDelta = nextTick - Date.now();
+        if(nextDelta < 0)
+            setImmediate(() => this.gameLoop());
+        else
+            setTimeout(() => this.gameLoop(), nextDelta);
     }
 
     onConnection(socket: SocketIO.Socket) {
