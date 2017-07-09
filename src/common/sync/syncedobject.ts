@@ -4,12 +4,14 @@
  */
 import {ISyncedObject} from "./ISyncedObject";
 
-export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: string, onDestroy?: string) {
+export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: string, onDestroy?: string, syncedHandler?: string) {
     return (targetIn: any) => {
         let target: ISyncedObject = targetIn;
         let prot: ISyncedObject = targetIn.prototype;
         if(!objectId)
             objectId = targetIn.name;
+
+        console.log("SyncObject: " + objectId + " | " + JSON.stringify(target.sync));
 
         /**
          * When the object is marked as "changed", we call the handler.
@@ -45,9 +47,11 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
                 syncList = this.syncChanged;
             else
                 syncList = this.sync;
+            console.log("EncodeDelta: " + this.syncObjectId + " | " + JSON.stringify(this.sync));
             //console.log("EncodeDelta: " + objectId + " | " + delta + " | " + JSON.stringify(syncList));
 
             for (let syncVar in syncList) {
+                console.log("Encode: " + syncVar);
                 let val = this["syncEncode_" + syncVar](delta, resetChanged);
                 if(val == undefined) //Even undefined must be synced
                     val = null;
@@ -114,6 +118,13 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
             this[onDestroy]();
         };
 
+        let synced = function() {
+            if(!syncedHandler)
+                return;
+
+            this[syncedHandler]();
+        };
+
         let markChanged = function(propertyId: string) {
             this.syncChanged[propertyId] = true;
             this.syncHasChanged = true;
@@ -131,6 +142,8 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
             prot.syncUpdated = update;
         if(onDestroy != null || prot.syncDestroy == null)
             prot.syncDestroy = destroy;
+        if(syncedHandler != null || prot.syncWasSynced == null)
+            prot.syncWasSynced = synced;
 
         prot.markChanged = markChanged;
 
@@ -152,6 +165,6 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
             configurable: true
         });
 
-        return <any>target;
+        return targetIn;
     }
 }

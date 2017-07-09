@@ -30,6 +30,8 @@ export class Assets {
     public static player = new ImageAsset("player", Assets.spritesDir + "player.png");
     public static enemy = new ImageAsset("enemy", Assets.spritesDir + "enemy.png");
 
+    public static attackSlash = new ImageAsset("attackSlash", Assets.spritesDir + "attackSlash.png");
+
     /** TileSets **/
     public static tileSetsDir = Assets.assetsDir + "tiles/";
     public static tileSet = new ImageAsset("tileset", Assets.tileSetsDir + "dungeon_tiles.png");

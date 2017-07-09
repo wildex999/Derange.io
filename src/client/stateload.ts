@@ -22,6 +22,8 @@ export class StateLoad extends Phaser.State {
 
         Assets.player.load();
         Assets.enemy.load();
+
+        Assets.attackSlash.load();
         
         Assets.tileSet.load();
 

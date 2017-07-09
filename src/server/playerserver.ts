@@ -11,14 +11,16 @@ import {IAction} from "../common/IAction";
 import {Actions} from "../common/Actions";
 import {ActionMove} from "../common/actions/ActionMove";
 import {Client} from "./client";
+import {PlayerCommon} from "../common/entities/PlayerCommon";
 
-@SyncedObject("Player")
+@SyncedObject("Player", null, null, null, "onSynced")
 export class PlayerServer extends Entity {
 
     @Sync()
     clientId: string;
-    //@Sync()
-    //position: SyncedMovement;
+    @Sync()
+    actions: IAction[]; //Actions synced with others(Attack etc.)
+
     clientActions: IAction[];
 
     constructor(clientId: string, world: World) {
@@ -50,7 +52,9 @@ export class PlayerServer extends Entity {
 
     public onCreated() {
         this.body.type = p2js.Body.DYNAMIC;
-        this.body.addShape(new p2js.Circle({radius:5}));
+        PlayerCommon.createCollider(this.body);
+
+        this.actions = [];
 
         super.onCreated();
     }
@@ -91,6 +95,11 @@ export class PlayerServer extends Entity {
                     let client: Client = this.world.syncer.clients[this.clientId];
                     //console.log("Move: " + client.clientTick + " Pos: " + this.body.position[0] + " | " + this.body.position[1] + " Vel: " + this.body.velocity[0] + " | " + this.body.velocity[1]);
                     break;
+
+                case Actions.Attack:
+                    //TODO: Handle
+                    this.actions.push(action);
+                    break;
             }
         }
         this.clientActions = [];
@@ -101,5 +110,10 @@ export class PlayerServer extends Entity {
 
     public onDestroy() {
         super.onDestroy();
+    }
+
+    onSynced() {
+        //Clear any actions done since last sync
+        this.actions = [];
     }
 }

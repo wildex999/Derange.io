@@ -12,6 +12,7 @@ import {TickState} from "../common/TickState";
 import {GameMath} from "../common/GameMath";
 import {IRewindable} from "./IRewindable";
 import Graphics = Phaser.Graphics;
+import {Circle} from "p2";
 
 @SyncedObject(null, "onSyncCreated", "onSyncUpdated", "onSyncDestroy")
 export class Entity implements IGameObject, IRewindable {
@@ -41,6 +42,7 @@ export class Entity implements IGameObject, IRewindable {
         this.body.mass = 1;
         this.body.fixedRotation = 0;
         this.body.damping = 0;
+        (<any>this.body).parent = this;
         this.game.physicsWorld.addBody(this.body);
 
         this.game.layerMid.add(this.sprite);
@@ -51,6 +53,8 @@ export class Entity implements IGameObject, IRewindable {
     }
 
     public update() {
+        this.showServerGhost(this.game.debugServerPosition);
+
         //Interpolate position from server positions
         if(this.doInterpolate) {
             this.interpolatePosition();
@@ -78,9 +82,14 @@ export class Entity implements IGameObject, IRewindable {
             if(this.serverGhost != null)
                 return;
 
+            let sphereSize = 10;
+            if(this.body.shapes.length > 0) {
+                sphereSize = this.body.shapes[0].boundingRadius * 2;
+            }
+
             this.serverGhost = this.game.add.graphics();
             this.serverGhost.beginFill(0xFF0000);
-            this.serverGhost.drawCircle(0, 0, 10);
+            this.serverGhost.drawCircle(0, 0, sphereSize);
             this.game.layerMid.add(this.serverGhost);
         } else {
             if(this.serverGhost != null) {
@@ -170,5 +179,9 @@ export class Entity implements IGameObject, IRewindable {
 
     onSyncDestroy() {
         console.log("SYNC DESTROY");
+    }
+
+    onBeginContact(otherBody: p2js.Body, shape: p2js.Shape, otherShape: p2js.Shape) {
+        console.log("CONTACT: " + (<any>this).syncObjectId);
     }
 }

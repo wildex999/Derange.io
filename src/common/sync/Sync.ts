@@ -13,6 +13,8 @@ export function Sync(propertyId?: string) {
         if(!propertyId)
             propertyId = key;
 
+        console.log("Prot: " + propertyId + " | " + JSON.stringify(targetIn));
+
         let getter = function () {
             //console.log("Get: " + key + " = " + _val);
             return this["_" + key];
@@ -91,11 +93,25 @@ export function Sync(propertyId?: string) {
             }
         }
 
-        if (!target.sync)
-            target.sync = {}; //List of all synced properties
+        //Setup properties. We will copy existing from the property chain, but redefine our own.
+        //We don't want to add our own sync properties to the parent.
+        if (!target.hasOwnProperty("sync")) {
+            let existingSync = {};
+            for(let syncProp in target.sync) //Copy existing sync from prototype chain
+                existingSync[syncProp] = target.sync[syncProp];
+
+            Object.defineProperty(target, "sync", {
+                value: existingSync
+            });
+        }
         target.sync[propertyId] = {};
-        target["syncEncode_" + propertyId] = encode;
-        target["syncDecode_" + propertyId] = decode;
+
+        Object.defineProperty(target, "syncEncode_" + propertyId, {
+            value: encode
+        });
+        Object.defineProperty(target, "syncDecode_" + propertyId, {
+            value: decode
+        });
 
         //Delete the original property so we can replace with a getter/setter
         delete target[key];

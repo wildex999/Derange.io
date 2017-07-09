@@ -30,6 +30,19 @@ export class StateGame extends Phaser.State {
         this.game.physicsWorld.gravity[0] = 0;
         this.game.physicsWorld.gravity[1] = 0;
 
+        this.game.physicsWorld.on("beginContact", function (event){
+            if(event.bodyA.parent && event.bodyA.parent.onBeginContact)
+                event.bodyA.parent.onBeginContact(event.bodyB, event.shapeA, event.shapeB);
+            if(event.bodyB.parent && event.bodyB.parent.onBeginContact)
+                event.bodyB.parent.onBeginContact(event.bodyA, event.shapeB, event.shapeA);
+        }, this);
+
+        this.game.physicsWorld.on("impact", function(event) {
+            console.log("Impact!");
+        }, this);
+
+
+
         //Setup handlers and syncing
         let syncer = new ClientSyncer(this.game.client.socket, this.game);
         syncer.defineClientObjects();

@@ -9,6 +9,7 @@ import {MapDownload} from "../common/models/MapDownload";
 
 import * as p2js from 'p2'
 import PhysicsWorld = p2js.World;
+import {EnemyDummy} from "./entities/EnemyDummy";
 
 export class World {
     syncer: ServerSyncer;
@@ -42,9 +43,9 @@ export class World {
         this.entities = {};
         this.syncCount = this.tickRate/this.syncRate;
 
-        //let enemy = new EnemyDummy(this);
-        //enemy.setPosition(100, 100);
-        //this.addEntity(enemy);
+        let enemy = new EnemyDummy(this);
+        enemy.setPosition(100, 100);
+        this.addEntity(enemy);
     }
 
     public loadMap(mapFile: string) {

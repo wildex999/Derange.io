@@ -13,18 +13,29 @@ import {ActionMove} from "../common/actions/ActionMove";
 import {Actions} from "../common/Actions";
 import {TickState} from "../common/TickState";
 import {GameMath} from "../common/GameMath";
+import Sprite = Phaser.Sprite;
+import {AttackSlash} from "./AttackSlash";
+import Point = Phaser.Point;
+import {PlayerCommon} from "../common/entities/PlayerCommon";
+import {ActionAttack} from "../common/actions/ActionAttack";
 
 @SyncedObject("Player")
 export class PlayerClient extends Entity {
+    actionAttack: ActionAttack;
     actionMove: ActionMove;
     speed = 32;
 
+    attackCooldown = 15;
+    attackWait = 0;
+
     @Sync()
     clientId: string;
+    @Sync()
+    actions: IAction[];
 
     //History
     clientPrediction: TickStates<PlayerState>; //For client prediction
-    maxPredictError = 5; //How many pixels off it is allowed to be before redoing the prediction
+    maxPredictError = 5; //How many pixels off the prediction is allowed to be before discarding it
 
     public isLocal: boolean;
 
@@ -35,7 +46,6 @@ export class PlayerClient extends Entity {
         this.isLocal = this.clientId == this.game.client.clientId;
         console.log("CREATED: " + this.isLocal);
 
-
         this.sprite.loadTexture(Assets.player.key);
 
         //this.pivot.set(8, 8);
@@ -44,17 +54,11 @@ export class PlayerClient extends Entity {
         this.spriteOffsetY = -5;
 
         //Collision
-        let shape = new p2js.Circle({radius:5});
         if(this.isLocal)
             this.body.type = p2js.Body.DYNAMIC;
         else
             this.body.type = p2js.Body.STATIC;
-        this.body.addShape(shape);
-
-        /*this.d = this.game.add.graphics(this.body.position[0], this.body.position[1]);
-        this.d.beginFill(0xFF0000, 1);
-        this.d.drawCircle(0, -5, 10);
-        this.game.myCam.add(this.d);*/
+        PlayerCommon.createCollider(this.body);
 
         if(this.isLocal) {
             this.disableInterpolate();
@@ -69,14 +73,7 @@ export class PlayerClient extends Entity {
         if(this.isLocal) {
             this.updateLocal();
             this.predictLocal();
-        } else {
-            //this.serverPosition.updateClient(this.game.clientTime);
-            //console.log("Test: " + JSON.stringify(this.serverPosition.events));
-            //console.log("MOVE: " + this.serverPosition.currentEvent.time + " > " + this.game.clientTime + " = " + this.serverPosition.x + " | " + this.serverPosition.y + " Delta: " + (this.serverPosition.x - this.x) + " | " + (this.serverPosition.y - this.y));
-            //this.setPosition(this.serverPosition.x, this.serverPosition.y);
-            this.updateRemote();
         }
-        this.showServerGhost(this.game.debugServerPosition);
 
         super.update();
     }
@@ -106,11 +103,17 @@ export class PlayerClient extends Entity {
                 //this.game.rewindToTick = this.game.clientRemoteTick;
                 console.log("Error: " + dx + " | " + dy + " @ " + this.game.clientRemoteTick);
             }
+        } else {
+            //Apply remote actions
+            for(let action of this.actions) {
+                switch(action.action) {
+                    case Actions.Attack:
+                        let attackAction: ActionAttack = <ActionAttack>action;
+                        new AttackSlash(this.game, this.getPosition().x, this.getPosition().y, attackAction.direction);
+                        break;
+                }
+            }
         }
-    }
-
-    updateRemote() {
-        //this.setVelocity(0, 0);
     }
 
     predictLocal() {
@@ -125,23 +128,31 @@ export class PlayerClient extends Entity {
         this.setVelocity(0,0);
 
         for(let action of localState.actions) {
-            if(action.action == Actions.Move) {
-                let moveAction: ActionMove = <ActionMove>action;
+            switch(action.action) {
+                case Actions.Move:
+                    let moveAction: ActionMove = <ActionMove>action;
 
-                let dx = 0;
-                let dy = 0;
-                if(moveAction.up)
-                    dy -= this.speed;
-                if(moveAction.down)
-                    dy += this.speed;
-                if(moveAction.left)
-                    dx -= this.speed;
-                if(moveAction.right)
-                    dx += this.speed;
+                    let dx = 0;
+                    let dy = 0;
+                    if(moveAction.up)
+                        dy -= this.speed;
+                    if(moveAction.down)
+                        dy += this.speed;
+                    if(moveAction.left)
+                        dx -= this.speed;
+                    if(moveAction.right)
+                        dx += this.speed;
 
-                this.setVelocity(dx, dy);
-                //console.log("Move: " + this.game.clientTick + " Pos: " + this.getPosition().x + " | " + this.getPosition().y + " Vel: " + this.getVelocity().x + " | " + this.getVelocity().y);
+                    this.setVelocity(dx, dy);
+                    //console.log("Move: " + this.game.clientTick + " Pos: " + this.getPosition().x + " | " + this.getPosition().y + " Vel: " + this.getVelocity().x + " | " + this.getVelocity().y);
+                    break;
+
+                case Actions.Attack:
+                    let attackAction: ActionAttack = <ActionAttack>action;
+                    new AttackSlash(this.game, this.getPosition().x, this.getPosition().y, attackAction.direction);
+                    break;
             }
+
         }
 
         if(this.game.isReplaying) {
@@ -152,18 +163,39 @@ export class PlayerClient extends Entity {
     updateLocal() {
         //Update the current local state
         if(!this.game.isReplaying) {
+            //Update movement
             let actionMove = this.actionMove;
             if(actionMove == null)
                 actionMove = new ActionMove();
+
             actionMove.up = this.game.inputManager.isDown(Keys.Up);
             actionMove.down = this.game.inputManager.isDown(Keys.Down);
             actionMove.left = this.game.inputManager.isDown(Keys.Left);
             actionMove.right = this.game.inputManager.isDown(Keys.Right);
+
             if(actionMove.up || actionMove.down || actionMove.left || actionMove.right) {
                 this.actionMove = actionMove;
                 this.game.sendAction(this.actionMove);
             } else
                 this.actionMove = null;
+
+            //Update attack
+            if(this.attackWait > 0)
+                this.attackWait--;
+            if(this.game.input.mousePointer.leftButton.justPressed() && this.attackWait == 0) {
+                let clickPoint = new Point(this.game.input.mousePointer.x, this.game.input.mousePointer.y);
+                let attackPoint = this.game.myCam.screenToCamera(clickPoint);
+
+                let angle = Phaser.Math.angleBetweenPoints(this.sprite.position, attackPoint) * 180 / Math.PI;
+                angle += 90;
+                //console.log("Angle: " + angle);
+
+                this.attackWait = this.attackCooldown;
+
+                this.actionAttack = new ActionAttack(angle);
+                this.game.sendAction(this.actionAttack);
+            } else
+                this.actionAttack = null;
 
             this.storeState();
         } else {
@@ -181,6 +213,8 @@ export class PlayerClient extends Entity {
 
         if(this.actionMove)
             newState.actions.push(this.actionMove);
+        if(this.actionAttack)
+            newState.actions.push(this.actionAttack);
 
         //Set state at tick
         this.clientPrediction.addState(new TickState(this.game.clientTick, newState));

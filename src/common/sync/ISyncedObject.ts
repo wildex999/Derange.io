@@ -18,4 +18,6 @@ export interface ISyncedObject {
     syncCreated(); //Added due to a SyncCreate
     syncUpdated(); //Updated due to a SyncUpdate
     syncDestroy(); //Destroyed due to a SyncDestroy
+
+    syncWasSynced(); //Called on the server when this object has been synced
 }

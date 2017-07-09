@@ -73,6 +73,7 @@ export class ServerSyncer {
      * Send Create, Update and Destroy events
      */
     public doSync() {
+        let wasSynced: ISyncedObject[] = [];
         for(let instId in this.changedObjects) {
             let syncEvent: SyncEvent = this.changedObjects[instId];
             let obj: ISyncedObject = syncEvent.instance;
@@ -93,10 +94,17 @@ export class ServerSyncer {
 
             //console.log("Send " + syncEvent.syncType + ": " + JSON.stringify(msg));
             this.sendToAll(msg);
+
+            if(syncEvent.syncType != SyncType.Destroy)
+                wasSynced.push(obj);
         }
 
         //Clear list of changed objects
         this.changedObjects = {};
+
+        //Let objects know they have been synced
+        for(let obj of wasSynced)
+            obj.syncWasSynced();
     }
 
     /**

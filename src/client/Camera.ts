@@ -1,4 +1,5 @@
 import {Game} from "./Game";
+import Point = Phaser.Point;
 
 export class Camera extends Phaser.Group {
     bounds: Phaser.Rectangle;
@@ -33,5 +34,11 @@ export class Camera extends Phaser.Group {
 
     public zoomTo(scale: number) {
         this.scale.setTo(scale);
+    }
+
+    public screenToCamera(point: Point): Point {
+        let x = (point.x - this.x) / this.scale.x;
+        let y = (point.y - this.y) / this.scale.y;
+        return new Point(x, y);
     }
 }
