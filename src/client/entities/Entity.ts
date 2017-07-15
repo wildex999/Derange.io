@@ -1,21 +1,22 @@
 
-import {Vector} from "../common/Vector";
-import {Sync} from "../common/sync/Sync";
+import {Vector} from "../../common/Vector";
+import {Sync} from "../../common/sync/Sync";
 import Sprite = Phaser.Sprite;
-import {Game} from "./Game";
-import {IGameObject} from "./IGameObject";
-import {SyncedObject} from "../common/sync/syncedobject";
+import {Game} from "../Game";
+import {IGameObject} from "../IGameObject";
+import {SyncedObject} from "../../common/sync/syncedobject";
 
 import * as p2js from "p2"
-import {TickStates} from "../common/TickStates";
-import {TickState} from "../common/TickState";
-import {GameMath} from "../common/GameMath";
-import {IRewindable} from "./IRewindable";
+import {TickStates} from "../../common/TickStates";
+import {TickState} from "../../common/TickState";
+import {GameMath} from "../../common/GameMath";
+import {IRewindable} from "../IRewindable";
 import Graphics = Phaser.Graphics;
 import {Circle} from "p2";
+import {IEntity} from "../../common/entities/IEntity";
 
 @SyncedObject(null, "onSyncCreated", "onSyncUpdated", "onSyncDestroy")
-export class Entity implements IGameObject, IRewindable {
+export class Entity implements IGameObject, IEntity, IRewindable {
     instanceId: number;
     game: Game;
     body: p2js.Body;
@@ -32,6 +33,8 @@ export class Entity implements IGameObject, IRewindable {
     serverPosition: Vector;
     @Sync("velocity")
     serverVelocity: Vector;
+    @Sync("canMove")
+    serverCanMove: boolean;
 
     public init(game: Game) {
         this.game = game;
@@ -104,9 +107,9 @@ export class Entity implements IGameObject, IRewindable {
         this.body.position[1] = GameMath.scale(y);
     }
 
-    public setVelocity(dx: number, dy: number) {
-        this.body.velocity[0] = GameMath.scale(dx);
-        this.body.velocity[1] = GameMath.scale(dy);
+    public setVelocity(x: number, y: number) {
+        this.body.velocity[0] = GameMath.scale(x);
+        this.body.velocity[1] = GameMath.scale(y);
     }
 
     public getPosition(): Vector {
@@ -151,7 +154,7 @@ export class Entity implements IGameObject, IRewindable {
         if(stateTo == null)
             stateTo = this.serverPositions.getState(this.serverPositions.size()-1);
 
-        console.log("StateFrom: " + stateFrom.tick + " StateTo: " + stateTo.tick + " Current: " + this.game.serverTick + " Client: " + this.game.clientTick);
+        //console.log("StateFrom: " + stateFrom.tick + " StateTo: " + stateTo.tick + " Current: " + this.game.serverTick + " Client: " + this.game.clientTick);
 
         //Interpolate between states
         let xDiff = stateTo.state.x - stateFrom.state.x;
@@ -161,7 +164,7 @@ export class Entity implements IGameObject, IRewindable {
             tickDiff = 1;
 
         let tickOffset = (currentTick - stateFrom.tick) / tickDiff;
-        console.log("Offset: " + tickOffset + " x: " + xDiff + " y: " + yDiff);
+        //console.log("Offset: " + tickOffset + " x: " + xDiff + " y: " + yDiff);
         this.setPosition(stateFrom.state.x + (xDiff * tickOffset), stateFrom.state.y + (yDiff * tickOffset));
     }
 

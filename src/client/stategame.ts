@@ -37,10 +37,6 @@ export class StateGame extends Phaser.State {
                 event.bodyB.parent.onBeginContact(event.bodyA, event.shapeB, event.shapeA);
         }, this);
 
-        this.game.physicsWorld.on("impact", function(event) {
-            console.log("Impact!");
-        }, this);
-
 
 
         //Setup handlers and syncing

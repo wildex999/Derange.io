@@ -10,6 +10,8 @@ import {MapDownload} from "../common/models/MapDownload";
 import * as p2js from 'p2'
 import PhysicsWorld = p2js.World;
 import {EnemyDummy} from "./entities/EnemyDummy";
+import {WalkingEnemyDummy} from "./entities/WalkingEnemyDummy";
+import {EnemyDummyFollowPlayer} from "./entities/EnemyDummyFollowPlayer";
 
 export class World {
     syncer: ServerSyncer;
@@ -17,10 +19,13 @@ export class World {
 
     physicsWorld: PhysicsWorld;
     entities: {[key: number]: GameObject}; //All object instances in the world
+    players: {[key: number]: GameObject};
     instanceCount: number = 0;
 
     tickDelta: number;
     currentTick: number;
+
+    tickStart: number;
 
     tickRate: number;
     syncRate: number;
@@ -35,17 +40,23 @@ export class World {
         this.physicsWorld.gravity[1] = 0;
         this.physicsWorld.applyGravity = false;
 
+        this.physicsWorld.on("beginContact", function (event){
+            if(event.bodyA.parent && event.bodyA.parent.onBeginContact)
+                event.bodyA.parent.onBeginContact(event.bodyB, event.shapeA, event.shapeB);
+            if(event.bodyB.parent && event.bodyB.parent.onBeginContact)
+                event.bodyB.parent.onBeginContact(event.bodyA, event.shapeB, event.shapeA);
+        }, this);
+
         this.syncer = syncer;
         this.tickRate = tickRate;
         this.syncRate = syncRate;
 
         this.newClients = {};
         this.entities = {};
+        this.players = {};
         this.syncCount = this.tickRate/this.syncRate;
 
-        let enemy = new EnemyDummy(this);
-        enemy.setPosition(100, 100);
-        this.addEntity(enemy);
+        this.spawnEnemyDummies();
     }
 
     public loadMap(mapFile: string) {
@@ -66,6 +77,7 @@ export class World {
     }
 
     public tick(tickDelta: number, currentTick: number) {
+        this.tickStart = Date.now();
         this.tickDelta = tickDelta;
         this.currentTick = currentTick;
 
@@ -82,6 +94,7 @@ export class World {
             let player = new PlayerServer(client.clientId, this);
             client.playerInstance = player;
             this.addEntity(player);
+            this.players[player.instanceId] = player;
 
             //Move player to spawn
             player.setPosition(this.spawn.x, this.spawn.y);
@@ -95,6 +108,7 @@ export class World {
         }
 
         //Update Physics
+        //console.log("Bodies: " + this.physicsWorld.bodies.length);
         this.physicsWorld.step(1/this.tickRate);
 
         //Update Entities
@@ -109,6 +123,8 @@ export class World {
             this.syncer.doSync();
             this.syncCount = this.tickRate/this.syncRate;
         }
+
+        //console.log("TickTime: " + (Date.now() - this.tickStart));
 
     }
 
@@ -149,7 +165,35 @@ export class World {
         delete this.newClients[client.clientId];
         this.syncer.removeClient(client);
 
-        if(client.playerInstance)
+        if(client.playerInstance) {
+            delete this.players[client.playerInstance.instanceId];
             this.removeEntity(client.playerInstance.instanceId);
+        }
     }
+
+    spawnEnemyDummies() {
+        this.spawnEnemyDummy(100, 100);
+        this.spawnEnemyDummy(116, 100);
+        this.spawnEnemyDummy(132, 100);
+
+        this.spawnEnemyDummy(200, 140);
+        this.spawnEnemyDummy(232, 140);
+        this.spawnEnemyDummy(264, 90);
+
+        let enemy = new WalkingEnemyDummy(this);
+        enemy.setPosition(200, 180);
+        this.addEntity(enemy);
+
+        let enemyFollow = new EnemyDummyFollowPlayer(this);
+        enemyFollow.setPosition(100, 80);
+        this.addEntity(enemyFollow);
+
+    }
+
+    spawnEnemyDummy(x: number, y: number) {
+        let enemy = new EnemyDummy(this);
+        enemy.setPosition(x, y);
+        this.addEntity(enemy);
+    }
+
 }

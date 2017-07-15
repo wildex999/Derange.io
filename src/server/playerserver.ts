@@ -2,16 +2,16 @@ import {Sync} from "../common/sync/Sync";
 import {SyncedObject} from "../common/sync/syncedobject";
 import {World} from "./world";
 import {Entity} from "./entities/entity";
-import {Input} from "../common/models/Input";
-import {ISyncedObject} from "../common/sync/ISyncedObject";
-import {Keys} from "../common/Keys";
 
 import * as p2js from "p2"
-import {IAction} from "../common/IAction";
-import {Actions} from "../common/Actions";
+import {IAction} from "../common/actions/IAction";
+import {Actions} from "../common/actions/Actions";
 import {ActionMove} from "../common/actions/ActionMove";
 import {Client} from "./client";
 import {PlayerCommon} from "../common/entities/PlayerCommon";
+import {AttackSlash} from "./attacks/AttackSlash";
+import {ActionAttack} from "../common/actions/ActionAttack";
+import {IAttack} from "../common/attacks/IAttack";
 
 @SyncedObject("Player", null, null, null, "onSynced")
 export class PlayerServer extends Entity {
@@ -19,7 +19,9 @@ export class PlayerServer extends Entity {
     @Sync()
     clientId: string;
     @Sync()
-    actions: IAction[]; //Actions synced with others(Attack etc.)
+    actions: {[key: number]: IAction[]}; //Actions synced with others(Attack etc.). Key: Tick number
+
+    currentAttack: IAttack;
 
     clientActions: IAction[];
 
@@ -28,8 +30,6 @@ export class PlayerServer extends Entity {
 
         this.clientId = clientId;
         this.clientActions = [];
-        //this.position = new SyncedMovement();
-        //this.position.historyTime = 100; //Allow for player to interpolate old positions
     }
 
     /*public updateInput(inputDelta: Input) {
@@ -54,7 +54,7 @@ export class PlayerServer extends Entity {
         this.body.type = p2js.Body.DYNAMIC;
         PlayerCommon.createCollider(this.body);
 
-        this.actions = [];
+        this.actions = {};
 
         super.onCreated();
     }
@@ -97,12 +97,22 @@ export class PlayerServer extends Entity {
                     break;
 
                 case Actions.Attack:
-                    //TODO: Handle
-                    this.actions.push(action);
+                    let attackAction: ActionAttack = <ActionAttack>action;
+
+                    if(this.currentAttack != null)
+                        break;
+
+                    this.currentAttack = new AttackSlash(this.world, this, attackAction.direction);
+                    this.addSyncedAction(action);
                     break;
             }
         }
         this.clientActions = [];
+
+        if(this.currentAttack != null) {
+            if(!this.currentAttack.update())
+                this.currentAttack = null;
+        }
 
         super.onUpdate();
         //console.log("Pos: " + JSON.stringify(this.body.position), " Vel: " + JSON.stringify(this.body.velocity));
@@ -114,6 +124,16 @@ export class PlayerServer extends Entity {
 
     onSynced() {
         //Clear any actions done since last sync
-        this.actions = [];
+        this.actions = {};
+    }
+
+    addSyncedAction(action: IAction) {
+        let tickActions: IAction[] = this.actions[this.world.currentTick];
+        if(tickActions == null) {
+            tickActions = [];
+            this.actions[this.world.currentTick] = tickActions;
+        }
+
+        tickActions.push(action);
     }
 }

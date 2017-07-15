@@ -1,5 +1,5 @@
 
-import {IAction} from "../IAction";
+import {IAction} from "../actions/IAction";
 
 export class Action implements Model {
     public static eventId = "Action";

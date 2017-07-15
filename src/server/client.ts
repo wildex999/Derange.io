@@ -5,7 +5,7 @@ import {PlayerServer} from "./playerserver";
 import {World} from "./world";
 import {Input} from "../common/models/Input";
 import {Tick} from "../common/models/tick";
-import {IAction} from "../common/IAction";
+import {IAction} from "../common/actions/IAction";
 import {Action} from "../common/models/Action";
 
 export class Client {
@@ -110,10 +110,19 @@ export class Client {
     }
 
     onTick(tick: Tick) {
+        //console.log("ClientTick: " + tick.tick);
         if(this.clientTick == -1)
             this.clientTick = tick.tick;
+
         this.clientTickReceived = tick.tick;
         this.serverTick = tick.remoteTick;
+
+        //If the client tick gets too far ahead of the handled tick, we drop the unhandled actions
+        if(this.clientTickReceived - this.clientTick > 10*this.world.tickRate) {
+            this.clientTick = this.clientTickReceived;
+            this.actionBuffer = {};
+            return;
+        }
     }
 
 }

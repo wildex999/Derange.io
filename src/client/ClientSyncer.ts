@@ -140,6 +140,7 @@ export class ClientSyncer {
         let diff = this.game.serverTick - this.game.clientTick;
         if(Math.abs(diff) > (this.game.tickRate / this.game.syncRate) * 2) {
             this.game.clientTick = this.game.serverTick;
+            console.log("JUMP");
         }
 
         //console.log("Tick, server: " + this.game.serverTick + " client: " + this.game.clientTick + " Diff: " + (this.game.serverTick - this.game.clientTick));

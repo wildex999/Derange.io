@@ -1,6 +1,7 @@
 
 import {TileObject} from "./TileObject";
 import * as p2js from "p2"
+import {CollisionGroups} from "../CollisionGroups";
 
 export class Map {
     width: number;
@@ -82,6 +83,8 @@ export class Map {
                 body.position[0] = layer.x + (x * tw) + centerX;
                 body.position[1] = layer.y + (y * th) + centerY;
                 let shape = new p2js.Box({width: tw, height: th});
+                shape.collisionGroup = CollisionGroups.TILE;
+                shape.collisionMask = CollisionGroups.ENEMY | CollisionGroups.PLAYER;
                 body.addShape(shape);
 
                 bodies.push(body);

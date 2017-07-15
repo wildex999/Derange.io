@@ -1,5 +1,5 @@
-import {Actions} from "../Actions";
-import {IAction} from "../IAction";
+import {Actions} from "./Actions";
+import {IAction} from "./IAction";
 
 export class ActionMove implements IAction {
     public action = Actions.Move;

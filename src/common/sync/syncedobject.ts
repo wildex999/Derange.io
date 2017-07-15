@@ -47,11 +47,11 @@ export function SyncedObject(objectId?: string, onCreated?: string, onUpdate?: s
                 syncList = this.syncChanged;
             else
                 syncList = this.sync;
-            console.log("EncodeDelta: " + this.syncObjectId + " | " + JSON.stringify(this.sync));
+            //console.log("EncodeDelta: " + this.syncObjectId + " | " + JSON.stringify(this.sync));
             //console.log("EncodeDelta: " + objectId + " | " + delta + " | " + JSON.stringify(syncList));
 
             for (let syncVar in syncList) {
-                console.log("Encode: " + syncVar);
+                //console.log("Encode: " + syncVar);
                 let val = this["syncEncode_" + syncVar](delta, resetChanged);
                 if(val == undefined) //Even undefined must be synced
                     val = null;

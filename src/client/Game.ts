@@ -12,7 +12,7 @@ import Group = Phaser.Group;
 import * as p2js from "p2"
 import World = p2js.World;
 import {IGameObject} from "./IGameObject";
-import {IAction} from "../common/IAction";
+import {IAction} from "../common/actions/IAction";
 import {Action} from "../common/models/Action";
 import {Keys} from "../common/Keys";
 

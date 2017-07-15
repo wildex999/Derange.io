@@ -19,7 +19,7 @@ export class StateConnect extends Phaser.State {
         let parsed = QueryString.parse(location.search);
         let server = parsed["server"];
         if(!server)
-            server = "localhost";
+            server = window.location.hostname || "localhost";
         let socket: SocketIOClient.Socket = io('http://' + server + ':8765');
 
         //Send our protocol version for verification. If this does not match with the server, we will be disconnected.

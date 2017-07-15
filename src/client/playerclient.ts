@@ -2,22 +2,23 @@
 import {Sync} from "../common/sync/Sync";
 import {SyncedObject} from "../common/sync/syncedobject";
 import {Assets} from "./assets";
-import {Entity} from "./Entity";
+import {Entity} from "./entities/Entity";
 import {TickStates} from "../common/TickStates";
 import {Vector} from "../common/Vector";
 import {Keys} from "../common/Keys";
 
 import * as p2js from "p2"
-import {IAction} from "../common/IAction";
+import {IAction} from "../common/actions/IAction";
 import {ActionMove} from "../common/actions/ActionMove";
-import {Actions} from "../common/Actions";
+import {Actions} from "../common/actions/Actions";
 import {TickState} from "../common/TickState";
 import {GameMath} from "../common/GameMath";
 import Sprite = Phaser.Sprite;
-import {AttackSlash} from "./AttackSlash";
+import {AttackSlash} from "./attacks/AttackSlash";
 import Point = Phaser.Point;
 import {PlayerCommon} from "../common/entities/PlayerCommon";
 import {ActionAttack} from "../common/actions/ActionAttack";
+import {IAttack} from "../common/attacks/IAttack";
 
 @SyncedObject("Player")
 export class PlayerClient extends Entity {
@@ -25,13 +26,12 @@ export class PlayerClient extends Entity {
     actionMove: ActionMove;
     speed = 32;
 
-    attackCooldown = 15;
-    attackWait = 0;
+    currentAttack: IAttack;
 
     @Sync()
     clientId: string;
     @Sync()
-    actions: IAction[];
+    actions: {[key: number]: IAction[]};
 
     //History
     clientPrediction: TickStates<PlayerState>; //For client prediction
@@ -75,6 +75,11 @@ export class PlayerClient extends Entity {
             this.predictLocal();
         }
 
+        if(this.currentAttack != null) {
+            if(!this.currentAttack.update())
+                this.currentAttack = null;
+        }
+
         super.update();
     }
 
@@ -86,10 +91,11 @@ export class PlayerClient extends Entity {
 
             let dx, dy;
             let predictedState = this.clientPrediction.getStateAt(this.game.clientRemoteTick, true);
+            //console.log("Test: " + JSON.stringify(this.clientPrediction) + " | " + this.game.clientRemoteTick);
             if(predictedState != null) {
                 dx = predictedState.state.position.x - this.serverPosition.x;
                 dy = predictedState.state.position.y - this.serverPosition.y;
-                console.log("Compare " + this.game.serverTick + ": " + GameMath.scale(dx) + " | " + GameMath.scale(dy));
+                //console.log("Compare " + this.game.serverTick + ": " + GameMath.scale(dx) + " | " + GameMath.scale(dy));
             }
 
             if(predictedState == null || (Math.abs(dx) + Math.abs(dy) > this.maxPredictError)) {
@@ -97,7 +103,8 @@ export class PlayerClient extends Entity {
                 this.setPosition(this.serverPosition.x, this.serverPosition.y);
 
                 //Throw out prediction
-                this.clientPrediction.clear();
+                if(predictedState != null)
+                    this.clientPrediction.clear();
 
                 //TODO: Ask for rewind and replay with the new data
                 //this.game.rewindToTick = this.game.clientRemoteTick;
@@ -105,12 +112,17 @@ export class PlayerClient extends Entity {
             }
         } else {
             //Apply remote actions
-            for(let action of this.actions) {
-                switch(action.action) {
-                    case Actions.Attack:
-                        let attackAction: ActionAttack = <ActionAttack>action;
-                        new AttackSlash(this.game, this.getPosition().x, this.getPosition().y, attackAction.direction);
-                        break;
+            for(let actionTick in this.actions) {
+                let tickActions: IAction[] = this.actions[actionTick];
+                //TODO: Take into account what tick the action was started(relative)
+                for(let action of tickActions) {
+                    switch (action.action) {
+                        case Actions.Attack:
+                            let attackAction: ActionAttack = <ActionAttack>action;
+                            let attack = new AttackSlash(this.game, this, attackAction.direction);
+                            this.setCurrentAttack(attack);
+                            break;
+                    }
                 }
             }
         }
@@ -149,7 +161,8 @@ export class PlayerClient extends Entity {
 
                 case Actions.Attack:
                     let attackAction: ActionAttack = <ActionAttack>action;
-                    new AttackSlash(this.game, this.getPosition().x, this.getPosition().y, attackAction.direction);
+                    let attack = new AttackSlash(this.game, this, attackAction.direction);
+                    this.setCurrentAttack(attack);
                     break;
             }
 
@@ -172,7 +185,6 @@ export class PlayerClient extends Entity {
             actionMove.down = this.game.inputManager.isDown(Keys.Down);
             actionMove.left = this.game.inputManager.isDown(Keys.Left);
             actionMove.right = this.game.inputManager.isDown(Keys.Right);
-
             if(actionMove.up || actionMove.down || actionMove.left || actionMove.right) {
                 this.actionMove = actionMove;
                 this.game.sendAction(this.actionMove);
@@ -180,22 +192,20 @@ export class PlayerClient extends Entity {
                 this.actionMove = null;
 
             //Update attack
-            if(this.attackWait > 0)
-                this.attackWait--;
-            if(this.game.input.mousePointer.leftButton.justPressed() && this.attackWait == 0) {
-                let clickPoint = new Point(this.game.input.mousePointer.x, this.game.input.mousePointer.y);
-                let attackPoint = this.game.myCam.screenToCamera(clickPoint);
+            this.actionAttack = null;
+            if(this.currentAttack == null) {
+                if (this.game.input.mousePointer.leftButton.justPressed()) {
+                    let clickPoint = new Point(this.game.input.mousePointer.x, this.game.input.mousePointer.y);
+                    let attackPoint = this.game.myCam.screenToCamera(clickPoint);
 
-                let angle = Phaser.Math.angleBetweenPoints(this.sprite.position, attackPoint) * 180 / Math.PI;
-                angle += 90;
-                //console.log("Angle: " + angle);
+                    let angle = Phaser.Math.angleBetweenPoints(this.sprite.position, attackPoint) * 180 / Math.PI;
+                    angle += 90;
+                    //console.log("Angle: " + angle);
 
-                this.attackWait = this.attackCooldown;
-
-                this.actionAttack = new ActionAttack(angle);
-                this.game.sendAction(this.actionAttack);
-            } else
-                this.actionAttack = null;
+                    this.actionAttack = new ActionAttack(angle);
+                    this.game.sendAction(this.actionAttack);
+                }
+            }
 
             this.storeState();
         } else {
@@ -230,6 +240,12 @@ export class PlayerClient extends Entity {
 
         state.state.position = this.getPosition();
         state.state.velocity = this.getVelocity();
+    }
+
+    setCurrentAttack(attack: IAttack) {
+        if(this.currentAttack != null)
+            this.currentAttack.destroy();
+        this.currentAttack = attack;
     }
 }
 
