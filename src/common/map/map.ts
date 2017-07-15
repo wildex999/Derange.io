@@ -45,6 +45,29 @@ export class Map {
         }
     }
 
+    public getEnemySpawns(): TileObject[] {
+        let objects = [];
+
+        if(this.layers == null)
+            return objects;
+
+        for(let tileLayer of this.layers) {
+            if(tileLayer.type != "objectgroup")
+                continue;
+            if(tileLayer.name != "EnemiesLayer")
+                continue;
+
+            let objectLayer: ObjectLayer = <ObjectLayer>tileLayer;
+            if(objectLayer.objects == null)
+                return;
+
+            for(let obj of objectLayer.objects)
+                objects.push(obj);
+
+            return objects;
+        }
+    }
+
     /**
      * Goes trough all tiles in a layer, and creates a physics Body with a collider for each.
      * @param layerName

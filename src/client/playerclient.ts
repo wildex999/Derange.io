@@ -19,6 +19,7 @@ import Point = Phaser.Point;
 import {PlayerCommon} from "../common/entities/PlayerCommon";
 import {ActionAttack} from "../common/actions/ActionAttack";
 import {IAttack} from "../common/attacks/IAttack";
+import {MovementModifier} from "../common/movementmodifiers/MovementModifier";
 
 @SyncedObject("Player")
 export class PlayerClient extends Entity {
@@ -70,6 +71,8 @@ export class PlayerClient extends Entity {
     }
 
     public update() {
+        this.preMovement();
+
         if(this.isLocal) {
             this.updateLocal();
             this.predictLocal();
@@ -137,7 +140,8 @@ export class PlayerClient extends Entity {
         let localState = localTickState.state;
 
         this.setPosition(localState.position.x, localState.position.y);
-        this.setVelocity(0,0);
+        this.setMovementModifier(localState.movementModifier);
+        this.preMovement();
 
         for(let action of localState.actions) {
             switch(action.action) {
@@ -168,6 +172,8 @@ export class PlayerClient extends Entity {
 
         }
 
+        this.updateMovement();
+
         if(this.game.isReplaying) {
             console.log("Replay: " + this.game.clientTick + " Move: " + this.getPosition().x + " | " + this.getPosition().y + " Vel: " + this.getVelocity().x + " | " + this.getVelocity().y);
         }
@@ -177,17 +183,20 @@ export class PlayerClient extends Entity {
         //Update the current local state
         if(!this.game.isReplaying) {
             //Update movement
-            let actionMove = this.actionMove;
-            if(actionMove == null)
-                actionMove = new ActionMove();
+            if(this.canMove) {
+                let actionMove = this.actionMove;
+                if (actionMove == null)
+                    actionMove = new ActionMove();
 
-            actionMove.up = this.game.inputManager.isDown(Keys.Up);
-            actionMove.down = this.game.inputManager.isDown(Keys.Down);
-            actionMove.left = this.game.inputManager.isDown(Keys.Left);
-            actionMove.right = this.game.inputManager.isDown(Keys.Right);
-            if(actionMove.up || actionMove.down || actionMove.left || actionMove.right) {
-                this.actionMove = actionMove;
-                this.game.sendAction(this.actionMove);
+                actionMove.up = this.game.inputManager.isDown(Keys.Up);
+                actionMove.down = this.game.inputManager.isDown(Keys.Down);
+                actionMove.left = this.game.inputManager.isDown(Keys.Left);
+                actionMove.right = this.game.inputManager.isDown(Keys.Right);
+                if (actionMove.up || actionMove.down || actionMove.left || actionMove.right) {
+                    this.actionMove = actionMove;
+                    this.game.sendAction(this.actionMove);
+                } else
+                    this.actionMove = null;
             } else
                 this.actionMove = null;
 
@@ -226,6 +235,9 @@ export class PlayerClient extends Entity {
         if(this.actionAttack)
             newState.actions.push(this.actionAttack);
 
+        if(this.movementModifier)
+            newState.movementModifier = this.movementModifier.clone();
+
         //Set state at tick
         this.clientPrediction.addState(new TickState(this.game.clientTick, newState));
     }
@@ -256,4 +268,5 @@ class PlayerState {
     public position: Vector;
     public velocity: Vector;
     public actions: IAction[];
+    public movementModifier: MovementModifier;
 }

@@ -14,9 +14,10 @@ import {IRewindable} from "../IRewindable";
 import Graphics = Phaser.Graphics;
 import {Circle} from "p2";
 import {IEntity} from "../../common/entities/IEntity";
+import {EntityCommon} from "../../common/entities/EntityCommon";
 
 @SyncedObject(null, "onSyncCreated", "onSyncUpdated", "onSyncDestroy")
-export class Entity implements IGameObject, IEntity, IRewindable {
+export class Entity extends EntityCommon implements IGameObject, IRewindable {
     instanceId: number;
     game: Game;
     body: p2js.Body;
@@ -134,11 +135,26 @@ export class Entity implements IGameObject, IEntity, IRewindable {
         //Override this to handle replay
     }
 
+    /**
+     * Get the current tick we are showing this Enity at.
+     * This usually somewhat behind the last server tick we got, allowing for interpolating multiple states.
+     */
+    getSimulateTick(): number {
+        return this.game.clientTick - (this.game.syncTicks * this.game.syncDelay);
+    }
+
+    /**
+     * Get the latest tick whose state we want to retain.
+     */
+    getClearServerStatesBeforeTick(): number {
+        //TODO: allow RTT*2 for rewind?
+        return this.game.clientTick - (this.game.syncTicks * (this.game.syncDelay + 1));
+    }
+
     interpolatePosition() {
-        let syncTicks = this.game.syncTicks;
-        let syncDelay = this.game.syncDelay;
-        let currentTick = this.game.clientTick - (syncTicks * syncDelay);
-        this.serverPositions.clearBefore(this.game.clientTick - (syncTicks * (syncDelay + 1))); //TODO: allow RTT*2 for rewind?
+        let currentTick = this.getSimulateTick();
+        let clearBeforeTick = this.getClearServerStatesBeforeTick();
+        this.serverPositions.clearBefore(clearBeforeTick);
 
         if(this.serverPositions.size() == 0) {
             this.setPosition(this.serverPosition.x, this.serverPosition.y);
@@ -149,8 +165,10 @@ export class Entity implements IGameObject, IEntity, IRewindable {
         let stateTo = this.serverPositions.getStateAfter(currentTick);
 
         //Check if we have enough frames to interpolate
-        if(stateFrom == null)
-            stateFrom = this.serverPositions.getState(0);
+        if(stateFrom == null) {
+            //If no state exists, then we assume interpolate from the current state
+            stateFrom = new TickState<Vector>(currentTick, this.getPosition());
+        }
         if(stateTo == null)
             stateTo = this.serverPositions.getState(this.serverPositions.size()-1);
 
@@ -166,6 +184,7 @@ export class Entity implements IGameObject, IEntity, IRewindable {
         let tickOffset = (currentTick - stateFrom.tick) / tickDiff;
         //console.log("Offset: " + tickOffset + " x: " + xDiff + " y: " + yDiff);
         this.setPosition(stateFrom.state.x + (xDiff * tickOffset), stateFrom.state.y + (yDiff * tickOffset));
+        //console.log("Pos: " + currentTick + " | " + stateFrom.tick + " => " + stateTo.tick + " | " + this.body.position[0] + " | " + this.body.position[1]);
     }
 
     onSyncCreated() {

@@ -40,7 +40,7 @@ export class EnemyDummy extends Entity implements IDamageable {
         //this.body.velocity[1] = dy * push;
         let pushMovement = new Vector(dx * push, dy * push);
         let movement = new PushMovement(pushMovement, 5, 5);
-        this.addMovementModifier(movement);
+        this.setMovementModifier(movement);
 
         this.damageInvCounter = this.damageInvTime;
 
@@ -52,7 +52,7 @@ export class EnemyDummy extends Entity implements IDamageable {
         this.body.mass = 1;
         let shape = new p2js.Circle({radius:5});
         shape.collisionGroup = CollisionGroups.ENEMY;
-        shape.collisionMask = CollisionGroups.ATTACK | CollisionGroups.TILE;
+        shape.collisionMask = CollisionGroups.ATTACK | CollisionGroups.TILE | CollisionGroups.ENEMY;
         this.body.type = p2js.Body.DYNAMIC;
         this.body.addShape(shape);
 
@@ -75,10 +75,14 @@ export class EnemyDummy extends Entity implements IDamageable {
         else
             this.damaged = false;
 
+        this.doMove();
+
         this.updateMovement();
 
         super.onUpdate();
     }
+
+    doMove() {}
 
     onDestroy() {
         super.onDestroy();

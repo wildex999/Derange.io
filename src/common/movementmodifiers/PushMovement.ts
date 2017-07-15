@@ -1,6 +1,5 @@
 
 import {MovementModifier} from "./MovementModifier";
-import {Entity} from "../../server/entities/Entity";
 import {IEntity} from "../entities/IEntity";
 import {Vector} from "../Vector";
 
@@ -21,8 +20,6 @@ export class PushMovement extends MovementModifier {
 
         this.takeControl = stunTime > 0;
 
-        pushAmount.x /= pushTime;
-        pushAmount.y /= pushTime;
         this.pushAmount = pushAmount;
 
         this.pushTime = pushTime;
@@ -52,5 +49,9 @@ export class PushMovement extends MovementModifier {
 
     public onRemove() {
 
+    }
+
+    public clone(): MovementModifier {
+        return new PushMovement(this.pushAmount, this.pushTime, this.stunTime);
     }
 }

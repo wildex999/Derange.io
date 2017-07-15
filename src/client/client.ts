@@ -10,7 +10,7 @@ export class Client {
 
     _loginCallback: (response: LoginResponse) => void;
 
-    constructor(socket: SocketIOClient.Socket, username: string) {
+    constructor(socket: SocketIOClient.Socket, username: string, disconnectHandler: () => void) {
         this._socket = socket;
         this._username = username;
 
@@ -18,6 +18,7 @@ export class Client {
 
         //Setup handlers
         this._socket.on(LoginResponse.eventId, (data) => this.onLogin(data));
+        this._socket.on("disconnect", (event) => disconnectHandler());
     }
 
     get username(): string {

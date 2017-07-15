@@ -55,8 +55,6 @@ export class World {
         this.entities = {};
         this.players = {};
         this.syncCount = this.tickRate/this.syncRate;
-
-        this.spawnEnemyDummies();
     }
 
     public loadMap(mapFile: string) {
@@ -74,6 +72,9 @@ export class World {
         }
 
         console.log("Got Spawn: " + this.spawn.x + " | " + this.spawn.y);
+
+        this.spawnEnemiesFromMap();
+        console.log("Spawned enemies");
     }
 
     public tick(tickDelta: number, currentTick: number) {
@@ -171,8 +172,25 @@ export class World {
         }
     }
 
-    spawnEnemyDummies() {
-        this.spawnEnemyDummy(100, 100);
+    spawnEnemiesFromMap() {
+        let enemySpawns = this.map.getEnemySpawns();
+
+        for(let spawn of enemySpawns) {
+            let dummy: EnemyDummy;
+
+            if(spawn.name == "DummyNormal")
+                dummy = new EnemyDummy(this);
+            else if(spawn.name == "DummyWalk")
+                dummy = new WalkingEnemyDummy(this);
+            else if(spawn.name = "DummyFollow")
+                dummy = new EnemyDummyFollowPlayer(this);
+
+            if(dummy != null) {
+                dummy.setPosition(spawn.x, spawn.y);
+                this.addEntity(dummy);
+            }
+        }
+        /*this.spawnEnemyDummy(100, 100);
         this.spawnEnemyDummy(116, 100);
         this.spawnEnemyDummy(132, 100);
 
@@ -186,7 +204,7 @@ export class World {
 
         let enemyFollow = new EnemyDummyFollowPlayer(this);
         enemyFollow.setPosition(100, 80);
-        this.addEntity(enemyFollow);
+        this.addEntity(enemyFollow);*/
 
     }
 

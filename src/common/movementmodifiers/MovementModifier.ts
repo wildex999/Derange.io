@@ -7,9 +7,9 @@ import {IEntity} from "../entities/IEntity";
 
 export abstract class MovementModifier {
     public takeControl: boolean; //Stop control from the entity(Both player and AI)
-    public exclusive: boolean; //If true, all other modifiers are removed
 
     public abstract onAdd(entity: IEntity); //Modifier has been added to Entity
     public abstract onUpdate(): boolean; //Single tick update on Entity. Return false to indicate it should be removed.
     public abstract onRemove(); //Modifier has been removed from Entity
+    public abstract clone(): MovementModifier; //Cloen the current state of the Movement Mofidier
 }

@@ -1,5 +1,8 @@
 import * as p2js from "p2"
 import {CollisionGroups} from "../CollisionGroups";
+import {MovementModifier} from "../movementmodifiers/MovementModifier";
+import {PushMovement} from "../movementmodifiers/PushMovement";
+import {Vector} from "../Vector";
 
 export class AttackSlashCommon {
     public static colliderVertices = [[0,0], [-15, -12], [-10, -17], [-6, -20], [-0, -21], [6, -20], [10, -17], [15, -12]];
@@ -26,5 +29,9 @@ export class AttackSlashCommon {
         }
 
         return body;
+    }
+
+    public static createMovementModifier(): MovementModifier {
+        return new PushMovement(new Vector(0,0), 2, 2);
     }
 }

@@ -7,6 +7,8 @@ import {IAttack} from "../../common/attacks/IAttack";
 import {IDamageable} from "../../common/IDamageable";
 import {Damage} from "../../common/Damage";
 import {DamageType} from "../../common/DamageType";
+import {PushMovement} from "../../common/movementmodifiers/PushMovement";
+import {Vector} from "../../common/Vector";
 
 export class AttackSlash implements IAttack {
     public attackId = AttackSlashCommon.attackId;
@@ -31,6 +33,10 @@ export class AttackSlash implements IAttack {
         (<any>this.body).parent = this;
 
         world.physicsWorld.addBody(this.body);
+
+        //Stop source from moving while attack is in progress
+        let movement = AttackSlashCommon.createMovementModifier();
+        source.setMovementModifier(movement);
     }
 
     public update(): boolean {
@@ -42,8 +48,8 @@ export class AttackSlash implements IAttack {
             return false;
         }
 
-        this.source.body.velocity[0] = Math.cos((this.angle-90) * Math.PI / 180) * 2;
-        this.source.body.velocity[1] = Math.sin((this.angle-90) * Math.PI / 180) * 2;
+        //this.source.body.velocity[0] = Math.cos((this.angle-90) * Math.PI / 180) * 2;
+        //this.source.body.velocity[1] = Math.sin((this.angle-90) * Math.PI / 180) * 2;
 
         return true;
     }

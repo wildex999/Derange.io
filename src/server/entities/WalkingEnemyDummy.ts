@@ -7,11 +7,9 @@ export class WalkingEnemyDummy extends EnemyDummy {
     walkDir: number = -1;
     walkSpeed: number = 24;
 
-    onUpdate() {
-        super.onUpdate();
-
-        if(!this.canMove) {
-            if(this.walkCount++ > 24) {
+    doMove() {
+        if(this.canMove) {
+            if(this.walkCount++ > 240) {
                 this.walkDir = -1 * this.walkDir;
                 this.walkCount = 0;
             }

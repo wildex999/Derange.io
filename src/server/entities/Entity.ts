@@ -9,15 +9,14 @@ import * as p2js from "p2"
 import {GameMath} from "../../common/GameMath";
 import {IEntity} from "../../common/entities/IEntity";
 import {MovementModifier} from "../../common/movementmodifiers/MovementModifier";
+import {EntityCommon} from "../../common/entities/EntityCommon";
 
 @SyncedObject()
-export class Entity implements GameObject, IEntity {
+export class Entity extends EntityCommon implements GameObject {
     public instanceId: number;
     public world: World;
 
     body: p2js.Body;
-
-    movementModifiers: MovementModifier[];
 
     @Sync()
     position: Vector;
@@ -27,11 +26,12 @@ export class Entity implements GameObject, IEntity {
     canMove: boolean;
 
     constructor(world: World) {
+        super();
+
         this.world = world;
         this.position = new Vector();
         this.velocity = new Vector();
 
-        this.movementModifiers = [];
         this.canMove = true;
 
         this.body = new p2js.Body();
@@ -59,23 +59,6 @@ export class Entity implements GameObject, IEntity {
         return new Vector(this.body.velocity[0], this.body.velocity[1]);
     }
 
-    public addMovementModifier(modifier: MovementModifier) {
-        if(modifier.exclusive) {
-            for(let currentModifier of this.movementModifiers)
-                currentModifier.onRemove();
-            this.movementModifiers = [];
-        } else {
-            //Don't add a non-exclusive if there is already an exclusive modifier running
-            for(let currentModifier of this.movementModifiers) {
-                if(currentModifier.exclusive)
-                    return;
-            }
-        }
-
-        this.movementModifiers.push(modifier);
-        modifier.onAdd(this);
-    }
-
     onCreated() {
         console.log("Add body");
         this.world.physicsWorld.addBody(this.body);
@@ -95,31 +78,6 @@ export class Entity implements GameObject, IEntity {
 
     onDestroy() {
         this.world.physicsWorld.removeBody(this.body);
-    }
-
-    preMovement() {
-        this.setVelocity(0,0);
-
-        //Check if a Movement Modifier is stopping movement input
-        let stopMovement = false;
-        for(let modifier of this.movementModifiers) {
-            if(modifier.takeControl) {
-                stopMovement = true;
-                break;
-            }
-        }
-        if(stopMovement)
-            this.canMove = false;
-        else
-            this.canMove = true;
-    }
-
-    updateMovement() {
-        for(let i = this.movementModifiers.length-1; i >= 0; i--) {
-            let modifier = this.movementModifiers[i];
-            if(!modifier.onUpdate())
-                this.movementModifiers.splice(i, 1);
-        }
     }
 
 }

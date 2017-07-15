@@ -7,6 +7,8 @@ import Graphics = Phaser.Graphics;
 import {AttackSlashCommon} from "../../common/attacks/AttackSlashCommon";
 import {Entity} from "../entities/Entity";
 import {IAttack} from "../../common/attacks/IAttack";
+import {PushMovement} from "../../common/movementmodifiers/PushMovement";
+import {Vector} from "../../common/Vector";
 
 export class AttackSlash implements IAttack {
     public attackId = AttackSlashCommon.attackId;
@@ -52,6 +54,10 @@ export class AttackSlash implements IAttack {
         }
 
         game.myCam.add(this.sprite);
+
+        //Stop source from moving while attack is in progress
+        let movement = AttackSlashCommon.createMovementModifier();
+        source.setMovementModifier(movement);
     }
 
     public update(): boolean {
@@ -66,8 +72,8 @@ export class AttackSlash implements IAttack {
         this.sprite.x = this.body.position[0];
         this.sprite.y = this.body.position[1];
 
-        this.source.body.velocity[0] = Math.cos((this.angle-90) * Math.PI / 180) * 2;
-        this.source.body.velocity[1] = Math.sin((this.angle-90) * Math.PI / 180) * 2;
+        //this.source.body.velocity[0] = Math.cos((this.angle-90) * Math.PI / 180) * 2;
+        //this.source.body.velocity[1] = Math.sin((this.angle-90) * Math.PI / 180) * 2;
 
         if(this.debug) {
             this.debug.x = this.body.position[0];

@@ -125,4 +125,16 @@ export class Game extends Phaser.Game {
         let msg = new Action(action);
         this.client.socket.emit(msg.getEventId(), msg);
     }
+
+    public handleDisconnect() {
+        let style: Phaser.PhaserTextStyle = {
+            font: "32px Arial",
+            fill: "#000000",
+            align: "center",
+            backgroundColor: "#FFFFFF"
+        };
+        let text = this.add.text(this.width/2, this.height/2,
+            "Disconnected from server! Reload page to re-connect!", style);
+        text.anchor.set(0.5);
+    }
 }

@@ -60,13 +60,15 @@ export class PlayerServer extends Entity {
     }
 
     public onUpdate() {
-        this.setVelocity(0,0);
+        this.preMovement();
 
         //Handle actions
         let hasMoved = false;
         for(let action of this.clientActions) {
             switch(action.action) {
                 case Actions.Move:
+                    if(!this.canMove)
+                        break;
                     if(hasMoved) {
                         console.log("UNHANDLED: " + JSON.stringify(action));
                         break;
@@ -113,6 +115,8 @@ export class PlayerServer extends Entity {
             if(!this.currentAttack.update())
                 this.currentAttack = null;
         }
+
+        this.updateMovement();
 
         super.onUpdate();
         //console.log("Pos: " + JSON.stringify(this.body.position), " Vel: " + JSON.stringify(this.body.velocity));
