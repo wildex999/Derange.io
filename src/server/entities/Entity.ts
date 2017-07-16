@@ -1,5 +1,4 @@
 
-import {GameObject} from "../GameObject";
 import {SyncedObject} from "../../common/sync/syncedobject";
 import {Vector} from "../../common/Vector";
 import {Sync} from "../../common/sync/Sync";
@@ -7,12 +6,12 @@ import {World} from "../world";
 
 import * as p2js from "p2"
 import {GameMath} from "../../common/GameMath";
-import {IEntity} from "../../common/entities/IEntity";
-import {MovementModifier} from "../../common/movementmodifiers/MovementModifier";
 import {EntityCommon} from "../../common/entities/EntityCommon";
+import {IGameObject} from "../IGameObject";
 
 @SyncedObject()
-export class Entity extends EntityCommon implements GameObject {
+export class Entity extends EntityCommon implements IGameObject {
+    @Sync()
     public instanceId: number;
     public world: World;
 
@@ -60,7 +59,6 @@ export class Entity extends EntityCommon implements GameObject {
     }
 
     onCreated() {
-        console.log("Add body");
         this.world.physicsWorld.addBody(this.body);
     }
 

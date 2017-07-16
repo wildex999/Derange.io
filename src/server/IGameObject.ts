@@ -1,6 +1,7 @@
 
-export interface GameObject {
+export interface IGameObject {
     instanceId: number;
+    tags: string[];
 
     onCreated(); //Instance has been added to the world
     onUpdate(); //Update instance in world

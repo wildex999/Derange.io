@@ -3,15 +3,11 @@ import {IAction} from "./IAction";
 
 export class ActionMove implements IAction {
     public action = Actions.Move;
-    public up: boolean;
-    public down: boolean;
-    public left: boolean;
-    public right: boolean;
+    public x;
+    public y;
 
-    constructor(up?: boolean, down?: boolean, left?: boolean, right?: boolean) {
-        this.up = up;
-        this.down = down;
-        this.left = left;
-        this.right = right;
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
     }
 }

@@ -7,11 +7,12 @@ import * as p2js from "p2"
 import {IAction} from "../common/actions/IAction";
 import {Actions} from "../common/actions/Actions";
 import {ActionMove} from "../common/actions/ActionMove";
-import {Client} from "./client";
 import {PlayerCommon} from "../common/entities/PlayerCommon";
+import {Vector} from "../common/Vector";
+import {IGameObject} from "./IGameObject";
 import {AttackSlash} from "./attacks/AttackSlash";
-import {ActionAttack} from "../common/actions/ActionAttack";
 import {IAttack} from "../common/attacks/IAttack";
+import {ActionAttack} from "../common/actions/ActionAttack";
 import {AttackSlashLarge} from "./attacks/AttackSlashLarge";
 import {ActionAttackSecondary} from "../common/actions/ActionAttackSecondary";
 
@@ -23,35 +24,23 @@ export class PlayerServer extends Entity {
     @Sync()
     actions: {[key: number]: IAction[]}; //Actions synced with others(Attack etc.). Key: Tick number
 
+    moveTo: Vector;
+    speed = [25, 30, 40, 60];
+    speedLevel = 0;
+    moveCount = 0;
+
+    attackTarget: IGameObject;
+    attackType: number;
+    attackRange = 20;
+
     currentAttack: IAttack;
     currentCombo = 0;
     comboCountdown = 0;
-
-    clientActions: IAction[];
 
     constructor(clientId: string, world: World) {
         super(world);
 
         this.clientId = clientId;
-        this.clientActions = [];
-    }
-
-    /*public updateInput(inputDelta: Input) {
-        let changed = false;
-        for(let key in inputDelta.inputChange) {
-            let newState = inputDelta.inputChange[key];
-            if(!newState) {
-                delete this.clientInput[key];
-                changed = true;
-            } else if(this.clientInput[key] != newState) {
-                this.clientInput[key] = true;
-                changed = true;
-            }
-        }
-    }*/
-
-    public onAction(action: IAction) {
-        this.clientActions.push(action);
     }
 
     public onCreated() {
@@ -66,65 +55,34 @@ export class PlayerServer extends Entity {
     public onUpdate() {
         this.preMovement();
 
+        if (this.currentAttack != null) {
+            if (!this.currentAttack.update())
+                this.currentAttack = null;
+        }
         if(this.comboCountdown-- <= 0) {
             this.comboCountdown = 0;
             this.currentCombo = 0;
         }
 
-        //Handle actions
-        let hasMoved = false;
-        for(let action of this.clientActions) {
-            switch(action.action) {
-                case Actions.Move:
-                    if(!this.canMove)
-                        break;
-                    if(hasMoved) {
-                        console.log("UNHANDLED: " + JSON.stringify(action));
-                        break;
-                    }
-                    hasMoved = true;
+        if(this.attackTarget && this.currentAttack == null) {
+            let target = <Entity>this.attackTarget;
+            let targetPos = target.getPosition();
+            let dist = this.distanceTo(targetPos.x, targetPos.y);
 
-                    let moveAction: ActionMove = <ActionMove>action;
+            if(dist > this.attackRange) {
+                this.moveTo = targetPos;
+            } else {
+                //Attack
+                let pos = this.getPosition();
+                let angle = (Math.atan2(targetPos.y - pos.y, targetPos.x - pos.x)) * 180 / Math.PI;
+                angle += 90;
 
-                    //Update velocity
-                    let speed = 32;
-                    let vx: number = 0;
-                    let vy: number = 0;
-                    if (moveAction.up) {
-                        vy -= speed;
-                    }
-                    if (moveAction.down) {
-                        vy += speed;
-                    }
-                    if (moveAction.left) {
-                        vx -= speed;
-                    }
-                    if (moveAction.right) {
-                        vx += speed;
-                    }
-                    this.setVelocity(vx, vy);
-                    let client: Client = this.world.syncer.clients[this.clientId];
-                    //console.log("Move: " + client.clientTick + " Pos: " + this.body.position[0] + " | " + this.body.position[1] + " Vel: " + this.body.velocity[0] + " | " + this.body.velocity[1]);
-                    break;
-
-                case Actions.AttackPrimary:
-                    let attackAction: ActionAttack = <ActionAttack>action;
-
-                    if(this.currentAttack != null)
-                        break;
-
-                    this.currentAttack = new AttackSlash(this.world, this, attackAction.direction);
-                    this.addSyncedAction(action);
-                    break;
-                case Actions.AttackSecondary:
-                    let attackActionSecondary: ActionAttackSecondary = <ActionAttackSecondary>action;
-                    attackActionSecondary.combo = this.currentCombo;
-
-                    if(this.currentAttack != null)
-                        break;
-
-                    this.currentAttack = new AttackSlashLarge(this.world, this, attackActionSecondary.direction, this.currentCombo);
-                    this.addSyncedAction(action);
+                if(this.attackType == 0) {
+                    this.setAttack(new AttackSlash(this.world, this, angle));
+                    this.addSyncedAction(new ActionAttack(angle));
+                } else if(this.attackType == 1) {
+                    this.setAttack(new AttackSlashLarge(this.world, this, angle, this.currentCombo));
+                    this.addSyncedAction(new ActionAttackSecondary(angle, this.currentCombo));
                     if(this.currentCombo < 3) {
                         this.currentCombo++;
                         this.comboCountdown = 60;
@@ -132,38 +90,101 @@ export class PlayerServer extends Entity {
                         this.currentCombo = 0;
                         this.comboCountdown = 0;
                     }
-                    break;
+
+                }
+
+                this.moveTo = null;
+                this.attackTarget = null;
             }
         }
-        this.clientActions = [];
 
-        if(this.currentAttack != null) {
-            if(!this.currentAttack.update())
-                this.currentAttack = null;
+        if(this.moveTo) {
+            if(!this.moveTowards(this.moveTo.x, this.moveTo.y))
+                this.moveTo = null;
+
+            this.moveCount++;
+            if(this.moveCount > 350)
+                this.moveCount = 350;
+        } else {
+            this.moveCount-= 2;
+            if(this.moveCount < 0)
+                this.moveCount = 0;
         }
+
+        if(this.moveCount > 300)
+            this.speedLevel = 3;
+        else if(this.moveCount > 150)
+            this.speedLevel = 2;
+        else if(this.moveCount > 50)
+            this.speedLevel = 1;
+        else
+            this.speedLevel = 0;
 
         this.updateMovement();
 
         super.onUpdate();
-        //console.log("Pos: " + JSON.stringify(this.body.position), " Vel: " + JSON.stringify(this.body.velocity));
     }
 
-    public onDestroy() {
-        super.onDestroy();
+    public onAction(action: IAction) {
+        if(action.action == Actions.Move) {
+            let actionMove = <ActionMove>action;
+            this.moveTo = new Vector(actionMove.x, actionMove.y);
+
+            //Stop attacking if we get a move command
+            this.attackTarget = null;
+        }
+    }
+
+    public onAttackTarget(targetInstanceId: number, attackType: number) {
+        this.attackTarget = this.world.entities[targetInstanceId];
+        this.attackType = attackType;
     }
 
     onSynced() {
-        //Clear any actions done since last sync
         this.actions = {};
     }
 
     addSyncedAction(action: IAction) {
         let tickActions: IAction[] = this.actions[this.world.currentTick];
-        if(tickActions == null) {
+        if (tickActions == null) {
             tickActions = [];
             this.actions[this.world.currentTick] = tickActions;
         }
 
         tickActions.push(action);
+    }
+
+    setAttack(attack: IAttack) {
+        if(this.currentAttack != null)
+            this.currentAttack.destroy();
+
+        this.currentAttack = attack;
+    }
+
+    distanceTo(targetX: number, targetY: number) {
+        let dx = targetX - this.body.position[0];
+        let dy = targetY - this.body.position[1];
+        return Math.sqrt((dx*dx) + (dy*dy));
+    }
+
+    /**
+     * Move towards the target
+     * @param {number} targetX
+     * @param {number} targetY
+     * @returns {boolean} False if it did not move(Already at target)
+     */
+    moveTowards(targetX: number, targetY: number): boolean {
+        let dx = targetX - this.body.position[0];
+        let dy = targetY - this.body.position[1];
+        let mag = Math.sqrt((dx*dx) + (dy*dy));
+        if(mag > 0.015) {
+            dx = dx / mag;
+            dy = dy / mag;
+
+            this.setVelocity(dx * this.speed[this.speedLevel], dy * this.speed[this.speedLevel]);
+            return true;
+        }
+
+        return false;
     }
 }

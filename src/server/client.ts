@@ -7,6 +7,7 @@ import {Input} from "../common/models/Input";
 import {Tick} from "../common/models/tick";
 import {IAction} from "../common/actions/IAction";
 import {Action} from "../common/models/Action";
+import {AttackTarget} from "../common/models/player/AttackTarget";
 
 export class Client {
     private static clientIdCounter: number = 0;
@@ -43,6 +44,7 @@ export class Client {
         //socket.on(Input.eventId, (input) => this.onInput(input));
         socket.on(Action.eventId, (action) => this.onAction(action));
         socket.on(Tick.eventId, (tick) => this.onTick(tick));
+        socket.on(AttackTarget.eventId, (data) => this.onAttackTarget(data));
     }
 
     /**
@@ -123,6 +125,13 @@ export class Client {
             this.actionBuffer = {};
             return;
         }
+    }
+
+    onAttackTarget(attackTarget: AttackTarget) {
+        if(this.playerInstance == null)
+            return;
+
+        this.playerInstance.onAttackTarget(attackTarget.instanceId, attackTarget.type);
     }
 
 }

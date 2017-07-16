@@ -1,15 +1,22 @@
 
 import {IEntity} from "./IEntity";
 import {MovementModifier} from "../movementmodifiers/MovementModifier";
+import {Tags} from "../Tags";
 
 export abstract class EntityCommon implements IEntity {
     movementModifier: MovementModifier;
     canMove: boolean;
 
+    public tags: string[];
+
     public abstract setPosition(x: number, y: number);
     public abstract getPosition();
     public abstract setVelocity(x: number, y: number);
     public abstract getVelocity();
+
+    constructor() {
+        this.tags = [Tags.Entity];
+    }
 
     public setMovementModifier(modifier: MovementModifier) {
         if(this.movementModifier != null)

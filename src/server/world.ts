@@ -1,7 +1,6 @@
 import {ServerSyncer} from "./ServerSyncer";
 import {Client} from "./client";
 import {PlayerServer} from "./playerserver";
-import {GameObject} from "./GameObject";
 import {Map} from "../common/map/map";
 import {TileObject} from "../common/map/TileObject";
 import * as fs from "fs";
@@ -12,14 +11,15 @@ import PhysicsWorld = p2js.World;
 import {EnemyDummy} from "./entities/EnemyDummy";
 import {WalkingEnemyDummy} from "./entities/WalkingEnemyDummy";
 import {EnemyDummyFollowPlayer} from "./entities/EnemyDummyFollowPlayer";
+import {IGameObject} from "./IGameObject";
 
 export class World {
     syncer: ServerSyncer;
     newClients: {[key: string]: Client}; //New clients which require full sync. Key: ClientId
 
     physicsWorld: PhysicsWorld;
-    entities: {[key: number]: GameObject}; //All object instances in the world
-    players: {[key: number]: GameObject};
+    entities: {[key: number]: IGameObject}; //All object instances in the world
+    players: {[key: number]: IGameObject};
     instanceCount: number = 0;
 
     tickDelta: number;
@@ -129,7 +129,7 @@ export class World {
 
     }
 
-    public addEntity(objInst: GameObject) {
+    public addEntity(objInst: IGameObject) {
         if((<any>objInst).syncObjectId)
             this.syncer.addInstance(objInst);
 
@@ -139,7 +139,7 @@ export class World {
     }
 
     public removeEntity(instanceId: number) {
-        let objInst: GameObject = this.entities[instanceId];
+        let objInst: IGameObject = this.entities[instanceId];
         if(objInst == null)
             throw new Error("Trying to remove object from World, which does not exist: " + instanceId);
 

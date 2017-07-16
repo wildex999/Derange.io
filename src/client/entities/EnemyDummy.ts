@@ -9,6 +9,7 @@ import {Damage} from "../../common/Damage";
 import {IAttack} from "../../common/attacks/IAttack";
 import {TickState} from "../../common/TickState";
 import {TickStates} from "../../common/TickStates";
+import {Tags} from "../../common/Tags";
 
 @SyncedObject()
 export class EnemyDummy extends Entity implements IDamageable {
@@ -18,6 +19,12 @@ export class EnemyDummy extends Entity implements IDamageable {
 
     serverStates: TickStates<boolean>;
     damaged: boolean;
+
+    constructor() {
+        super();
+
+        this.tags.push(Tags.Enemy);
+    }
 
     public onDamage(attack: IAttack, x: number, y: number, push: number, damage: Damage[]) {
         //TODO: Show damage number
@@ -34,6 +41,10 @@ export class EnemyDummy extends Entity implements IDamageable {
         this.sprite.anchor.setTo(0.5, 0.5);
         this.spriteOffsetX = -3;
         this.spriteOffsetY = -5;
+
+        this.sprite.inputEnabled = true;
+        //this.sprite.events.onInputOver
+        //this.sprite.events.onInputDown.add(this.onClick, this);
     }
 
     update() {

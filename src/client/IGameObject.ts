@@ -3,6 +3,7 @@ import {Game} from "./Game";
 
 export interface IGameObject {
     instanceId: number; //Set when adding to game
+    tags: string[];
 
     /**
      * Called when the object is created.

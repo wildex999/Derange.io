@@ -15,13 +15,14 @@ import Graphics = Phaser.Graphics;
 import {Circle} from "p2";
 import {IEntity} from "../../common/entities/IEntity";
 import {EntityCommon} from "../../common/entities/EntityCommon";
+import {ObjectSprite} from "../ObjectSprite";
 
 @SyncedObject(null, "onSyncCreated", "onSyncUpdated", "onSyncDestroy")
 export class Entity extends EntityCommon implements IGameObject, IRewindable {
     instanceId: number;
     game: Game;
     body: p2js.Body;
-    sprite: Sprite;
+    sprite: ObjectSprite;
     serverGhost: Graphics;
 
     spriteOffsetX: number = 0;
@@ -30,6 +31,8 @@ export class Entity extends EntityCommon implements IGameObject, IRewindable {
     doInterpolate: boolean;
     serverPositions: TickStates<Vector>; //For interpolate
 
+    @Sync("instanceId")
+    public remoteInstanceId: number;
     @Sync("position")
     serverPosition: Vector;
     @Sync("velocity")
@@ -40,7 +43,8 @@ export class Entity extends EntityCommon implements IGameObject, IRewindable {
     public init(game: Game) {
         this.game = game;
 
-        this.sprite = game.add.sprite();
+        this.sprite = <ObjectSprite>game.add.sprite();
+        this.sprite.object = this;
 
         this.body = new p2js.Body();
         this.body.mass = 1;

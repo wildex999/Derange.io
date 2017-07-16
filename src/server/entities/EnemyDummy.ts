@@ -12,6 +12,7 @@ import {CollisionGroups} from "../../common/CollisionGroups";
 import {Vector} from "../../common/Vector";
 import {MovementModifier} from "../../common/movementmodifiers/MovementModifier";
 import {PushMovement} from "../../common/movementmodifiers/PushMovement";
+import {Tags} from "../../common/Tags";
 
 @SyncedObject()
 export class EnemyDummy extends Entity implements IDamageable {
@@ -24,6 +25,8 @@ export class EnemyDummy extends Entity implements IDamageable {
 
     constructor(world: World) {
         super(world);
+
+        this.tags.push(Tags.Enemy);
     }
 
     public onDamage(attack: IAttack, x: number, y: number, push: number, damage: Damage[]) {
@@ -50,7 +53,7 @@ export class EnemyDummy extends Entity implements IDamageable {
         this.body.mass = 1;
         let shape = new p2js.Circle({radius:5});
         shape.collisionGroup = CollisionGroups.ENEMY;
-        shape.collisionMask = CollisionGroups.ATTACK | CollisionGroups.TILE | CollisionGroups.ENEMY;
+        shape.collisionMask = CollisionGroups.ATTACK | CollisionGroups.TILE | CollisionGroups.ENEMY | CollisionGroups.PLAYER;
         this.body.type = p2js.Body.DYNAMIC;
         this.body.addShape(shape);
 

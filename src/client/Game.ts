@@ -15,6 +15,7 @@ import {IGameObject} from "./IGameObject";
 import {IAction} from "../common/actions/IAction";
 import {Action} from "../common/models/Action";
 import {Keys} from "../common/Keys";
+import {AttackTarget} from "../common/models/player/AttackTarget";
 
 export class Game extends Phaser.Game {
     public client: Client;
@@ -26,9 +27,6 @@ export class Game extends Phaser.Game {
     public serverTick: number;
     public tickRate: number = 60; //TODO: Get from server
     public syncRate: number = 20; //TODO: Get from server
-
-    public rewindToTick: number; //Set to a tick to rewind.
-    public isReplaying: boolean; //Whether or not we are currently replaying old client states
 
     //Interpolate
     public syncTicks = this.tickRate / this.syncRate; //How many ticks between sync. TODO: calculate dynamic?
@@ -55,9 +53,6 @@ export class Game extends Phaser.Game {
         this.clientRemoteTick = -1;
         this.serverTick = -1;
 
-        this.rewindToTick = -1;
-        this.isReplaying = false;
-
         this.instanceCount = 1;
         this.objects = {};
 
@@ -73,6 +68,8 @@ export class Game extends Phaser.Game {
         //Tell server we are on a new tick(And to apply every action it has received)
         if(this.clientTick > -1)
             this.sendTick();
+
+        this.layerMid.sort('y', Phaser.Group.SORT_ASCENDING);
     }
 
     public addObject(obj: IGameObject) {
@@ -123,6 +120,11 @@ export class Game extends Phaser.Game {
 
     public sendAction(action: IAction) {
         let msg = new Action(action);
+        this.client.socket.emit(msg.getEventId(), msg);
+    }
+
+    public doAttack(instanceId: number, type: number) {
+        let msg = new AttackTarget(instanceId, type);
         this.client.socket.emit(msg.getEventId(), msg);
     }
 

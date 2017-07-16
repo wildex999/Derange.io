@@ -55,38 +55,6 @@ export class StateGame extends Phaser.State {
             return;
         this.game.clientTick++;
 
-        //Rewind and replay if needed
-        if(this.game.rewindToTick > -1) {
-            console.log("REWIND: " + (this.game.clientTick - this.game.rewindToTick));
-            let clientTick = this.game.clientTick;
-            this.game.clientTick = this.game.rewindToTick;
-            this.game.isReplaying = true;
-
-            //Tell all entities we are rewinding
-            let objects = this.game.getObjects();
-            for(let instanceId in objects) {
-                let obj:any = objects[instanceId];
-                if(obj.rewind)
-                    obj.rewind(this.game.clientTick);
-            }
-
-            //Replay up to the current tick
-            for(let currentTick = this.game.clientTick; currentTick < clientTick; currentTick++) {
-                this.game.clientTick = currentTick;
-
-                this.game.physicsWorld.step(1/this.game.tickRate);
-                for(let instanceId in objects) {
-                    let obj: IGameObject = objects[instanceId];
-                    obj.update();
-                }
-            }
-
-
-            this.game.rewindToTick = -1;
-            this.game.clientTick = clientTick;
-            this.game.isReplaying = false;
-        }
-
         //Step Physics World
         this.game.physicsWorld.step(1/this.game.tickRate);
     }
