@@ -8,6 +8,4 @@ export interface IEntity {
 
     setVelocity(x: number, y: number);
     getVelocity(): Vector;
-
-    setMovementModifier(modifier: MovementModifier);
 }

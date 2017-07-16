@@ -31,14 +31,5 @@ export class AttackSlashLargeCommon extends AttackSlashCommon {
             this.colliderVertices = AttackSlashLargeCommon.colliderVertices2;
         if(this.combo == 3)
             this.colliderVertices = AttackSlashLargeCommon.colliderVertices3;
-
-        //Stop source from moving while attack is in progress
-        let dx = Math.cos((this.angle-90) * Math.PI / 180);
-        let dy = Math.sin((this.angle-90) * Math.PI / 180);
-
-        let push = new Vector(dx * this.playerPush * (this.combo+1), dy * this.playerPush * (this.combo+1));
-
-        let movement = new PushMovement(push, this.playerPushTime, this.playerStunTime);
-        this.source.setMovementModifier(movement);
     }
 }

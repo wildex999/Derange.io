@@ -40,11 +40,15 @@ export class PlayerClient extends Entity {
 
     isLocal: boolean;
     currentAttack: IAttack;
+    dash: boolean;
+
+    inputCooldown: number;
 
     onSyncCreated() {
         super.onSyncCreated();
 
         this.isLocal = this.clientId == this.game.client.clientId;
+        this.inputCooldown = 0;
         console.log("CREATED: " + this.isLocal);
 
         this.sprite.loadTexture(Assets.player.key);
@@ -70,6 +74,8 @@ export class PlayerClient extends Entity {
 
 
     update() {
+        if(this.inputCooldown > 0)
+            this.inputCooldown--;
 
         if(this.currentAttack != null) {
             if(!this.currentAttack.update())
@@ -97,10 +103,14 @@ export class PlayerClient extends Entity {
         this.actions = {};
 
         //Client input
-        if(this.game.input.mousePointer.leftButton.isDown)
-            this.doClick(true);
-        else if(this.game.input.mousePointer.rightButton.isDown)
-            this.doClick(false);
+        if(this.inputCooldown <= 0) {
+            if (this.game.input.keyboard.isDown(Phaser.KeyCode.SPACEBAR))
+                this.dash = true;
+            if (this.game.input.mousePointer.leftButton.isDown)
+                this.doClick(true);
+            else if (this.game.input.mousePointer.rightButton.isDown)
+                this.doClick(false);
+        }
 
         super.update();
     }
@@ -134,6 +144,10 @@ export class PlayerClient extends Entity {
         }
 
         //Move to location
-        this.game.sendAction(new ActionMove(clickPoint.x, clickPoint.y));
+        this.game.sendAction(new ActionMove(clickPoint.x, clickPoint.y, this.dash));
+
+        if(this.dash)
+            this.inputCooldown = 10;
+        this.dash = false;
     }
 }

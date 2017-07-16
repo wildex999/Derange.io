@@ -8,6 +8,7 @@ import * as p2js from "p2"
 import {GameMath} from "../../common/GameMath";
 import {EntityCommon} from "../../common/entities/EntityCommon";
 import {IGameObject} from "../IGameObject";
+import {MovementModifier} from "../../common/movementmodifiers/MovementModifier";
 
 @SyncedObject()
 export class Entity extends EntityCommon implements IGameObject {
@@ -16,6 +17,7 @@ export class Entity extends EntityCommon implements IGameObject {
     public world: World;
 
     body: p2js.Body;
+    movementModifier: MovementModifier;
 
     @Sync()
     position: Vector;
@@ -76,6 +78,34 @@ export class Entity extends EntityCommon implements IGameObject {
 
     onDestroy() {
         this.world.physicsWorld.removeBody(this.body);
+    }
+
+    public setMovementModifier(modifier: MovementModifier) {
+        if(this.movementModifier != null)
+            this.movementModifier.onRemove();
+
+        this.movementModifier = modifier;
+        if(modifier != null)
+            modifier.onAdd(this);
+    }
+
+    preMovement() {
+        this.setVelocity(0,0);
+
+        //Check if the Movement Modifier is stopping movement input
+        if(this.movementModifier)
+            this.canMove = !this.movementModifier.takeControl;
+        else
+            this.canMove = true;
+    }
+
+    updateMovement() {
+        if(this.movementModifier != null) {
+            if(!this.movementModifier.onUpdate()) {
+                this.movementModifier.onRemove();
+                this.movementModifier = null;
+            }
+        }
     }
 
 }

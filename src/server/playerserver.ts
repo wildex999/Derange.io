@@ -15,6 +15,7 @@ import {IAttack} from "../common/attacks/IAttack";
 import {ActionAttack} from "../common/actions/ActionAttack";
 import {AttackSlashLarge} from "./attacks/AttackSlashLarge";
 import {ActionAttackSecondary} from "../common/actions/ActionAttackSecondary";
+import {PushMovement} from "../common/movementmodifiers/PushMovement";
 
 @SyncedObject("Player", null, null, null, "onSynced")
 export class PlayerServer extends Entity {
@@ -36,6 +37,9 @@ export class PlayerServer extends Entity {
     currentAttack: IAttack;
     currentCombo = 0;
     comboCountdown = 0;
+
+    dashCooldown = 0;
+    dashForce = 500;
 
     constructor(clientId: string, world: World) {
         super(world);
@@ -63,6 +67,9 @@ export class PlayerServer extends Entity {
             this.comboCountdown = 0;
             this.currentCombo = 0;
         }
+
+        if(this.dashCooldown > 0)
+            this.dashCooldown--;
 
         if(this.attackTarget && this.currentAttack == null) {
             let target = <Entity>this.attackTarget;
@@ -98,7 +105,7 @@ export class PlayerServer extends Entity {
             }
         }
 
-        if(this.moveTo) {
+        if(this.moveTo && this.canMove) {
             if(!this.moveTowards(this.moveTo.x, this.moveTo.y))
                 this.moveTo = null;
 
@@ -128,7 +135,24 @@ export class PlayerServer extends Entity {
     public onAction(action: IAction) {
         if(action.action == Actions.Move) {
             let actionMove = <ActionMove>action;
-            this.moveTo = new Vector(actionMove.x, actionMove.y);
+
+            if(actionMove.dash && this.dashCooldown == 0) {
+                this.moveTo = null;
+                this.dashCooldown = 360;
+
+                let dx = actionMove.x - this.body.position[0];
+                let dy = actionMove.y - this.body.position[1];
+                let mag = Math.sqrt((dx*dx) + (dy*dy));
+                dx = dx / mag;
+                dy = dy / mag;
+                let dir = new Vector(dx * this.dashForce, dy * this.dashForce);
+
+                let movement = new PushMovement(dir, 15, 15);
+                this.setMovementModifier(movement);
+                this.moveCount = 350;
+            } else {
+                this.moveTo = new Vector(actionMove.x, actionMove.y);
+            }
 
             //Stop attacking if we get a move command
             this.attackTarget = null;

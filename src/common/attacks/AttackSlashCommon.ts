@@ -63,10 +63,6 @@ export class AttackSlashCommon implements IAttack {
 
     setup() {
         this.colliderVertices = AttackSlashCommon.colliderVertices0;
-
-        //Stop source from moving while attack is in progress
-        let movement = new SlowMovement(this.slowTime, this.slowAmount);
-        this.source.setMovementModifier(movement);
     }
 
     addColliderShape() {

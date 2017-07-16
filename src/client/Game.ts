@@ -16,11 +16,16 @@ import {IAction} from "../common/actions/IAction";
 import {Action} from "../common/models/Action";
 import {Keys} from "../common/Keys";
 import {AttackTarget} from "../common/models/player/AttackTarget";
+import {ObjectSprite} from "./ObjectSprite";
+import {Tags} from "../common/Tags";
+import {Entity} from "./entities/Entity";
+import Sprite = Phaser.Sprite;
 
 export class Game extends Phaser.Game {
     public client: Client;
     public myCam: Camera;
     public inputManager: InputManager;
+    public hoverSprite: Sprite;
 
     public clientTick: number;
     public clientRemoteTick: number; //Last tick seen by server
@@ -69,7 +74,35 @@ export class Game extends Phaser.Game {
         if(this.clientTick > -1)
             this.sendTick();
 
+        //Sort so sprites are in front of those behind
         this.layerMid.sort('y', Phaser.Group.SORT_ASCENDING);
+
+        //Show outline on enemy hover
+        let target = this.input.mousePointer.targetObject;
+        if(target && target.sprite) {
+            let obj = <ObjectSprite>target.sprite;
+            if(obj.object && Tags.Has(obj.object.tags, Tags.Entity)) {
+                let entity = <Entity>obj.object;
+                if(Tags.Has(entity.tags, Tags.Enemy)) {
+                    if(this.hoverSprite)
+                        this.hoverSprite.destroy();
+
+                    this.hoverSprite = this.add.sprite(entity.sprite.x, entity.sprite.y, entity.sprite.key);
+                    this.hoverSprite.anchor = entity.sprite.anchor;
+                    this.hoverSprite.tint = 0xFF0000;
+                    this.hoverSprite.alpha = 0.6;
+                    this.hoverSprite.scale.setTo(1.1, 1.1);
+                    this.layerMid.add(this.hoverSprite);
+
+                    entity.sprite.bringToTop();
+                }
+            }
+        } else {
+            if(this.hoverSprite) {
+                this.hoverSprite.destroy();
+                this.hoverSprite = null;
+            }
+        }
     }
 
     public addObject(obj: IGameObject) {

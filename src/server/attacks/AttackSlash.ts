@@ -6,10 +6,12 @@ import {Entity} from "../entities/Entity";
 import {IDamageable} from "../../common/IDamageable";
 import {Damage} from "../../common/Damage";
 import {DamageType} from "../../common/DamageType";
+import {SlowMovement} from "../../common/movementmodifiers/SlowMovement";
 
 export class AttackSlash extends AttackSlashCommon {
     body: p2js.Body;
     world: World;
+    source: Entity;
 
     push = 0;
     damage = 1;
@@ -21,6 +23,14 @@ export class AttackSlash extends AttackSlashCommon {
 
         this.createBody(true);
         world.physicsWorld.addBody(this.body);
+    }
+
+    public setup() {
+        super.setup();
+
+        //Stop source from moving while attack is in progress
+        let movement = new SlowMovement(this.slowTime, this.slowAmount);
+        this.source.setMovementModifier(movement);
     }
 
     public destroy() {
