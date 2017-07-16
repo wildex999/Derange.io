@@ -36,10 +36,8 @@ export class EnemyDummy extends Entity implements IDamageable {
         dx = dx/mag;
         dy = dy/mag;
 
-        //this.body.velocity[0] = dx * push;
-        //this.body.velocity[1] = dy * push;
         let pushMovement = new Vector(dx * push, dy * push);
-        let movement = new PushMovement(pushMovement, 5, 5);
+        let movement = new PushMovement(pushMovement, 10, 10);
         this.setMovementModifier(movement);
 
         this.damageInvCounter = this.damageInvTime;

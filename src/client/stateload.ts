@@ -28,6 +28,7 @@ export class StateLoad extends Phaser.State {
         Assets.tileSet.load();
 
         this.game.inputManager = new InputManager(this.game);
+        this.game.canvas.oncontextmenu = (e) => e.preventDefault();
     }
 
     create() {

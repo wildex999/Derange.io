@@ -20,6 +20,12 @@ import {PlayerCommon} from "../common/entities/PlayerCommon";
 import {ActionAttack} from "../common/actions/ActionAttack";
 import {IAttack} from "../common/attacks/IAttack";
 import {MovementModifier} from "../common/movementmodifiers/MovementModifier";
+import {AttackSlashCommon} from "../common/attacks/AttackSlashCommon";
+import {AttackSlashLargeCommon} from "../common/attacks/AttackSlashLargeCommon";
+import {AttackSlashLarge} from "../server/attacks/AttackSlashLarge";
+import {AttackSlashLargeSprite} from "./attacks/AttackSlashLargeSprite";
+import {AttackSlashSprite} from "./attacks/AttackSlashSprite";
+import {ActionAttackSecondary} from "../common/actions/ActionAttackSecondary";
 
 @SyncedObject("Player")
 export class PlayerClient extends Entity {
@@ -28,6 +34,9 @@ export class PlayerClient extends Entity {
     speed = 32;
 
     currentAttack: IAttack;
+
+    currentCombo = 0;
+    comboCountdown = 0;
 
     @Sync()
     clientId: string;
@@ -116,13 +125,19 @@ export class PlayerClient extends Entity {
         } else {
             //Apply remote actions
             for(let actionTick in this.actions) {
+                let attack: AttackSlash;
                 let tickActions: IAction[] = this.actions[actionTick];
                 //TODO: Take into account what tick the action was started(relative)
                 for(let action of tickActions) {
                     switch (action.action) {
-                        case Actions.Attack:
+                        case Actions.AttackPrimary:
                             let attackAction: ActionAttack = <ActionAttack>action;
-                            let attack = new AttackSlash(this.game, this, attackAction.direction);
+                            attack = new AttackSlash(this.game, new AttackSlashCommon(this, attackAction.direction), AttackSlashSprite);
+                            this.setCurrentAttack(attack);
+                            break;
+                        case Actions.AttackSecondary:
+                            let attackActionSecondary: ActionAttackSecondary = <ActionAttackSecondary>action;
+                            attack = new AttackSlash(this.game, new AttackSlashLargeCommon(this, attackActionSecondary.direction, attackActionSecondary.combo), AttackSlashLargeSprite);
                             this.setCurrentAttack(attack);
                             break;
                     }
@@ -143,7 +158,14 @@ export class PlayerClient extends Entity {
         this.setMovementModifier(localState.movementModifier);
         this.preMovement();
 
+        if(this.comboCountdown-- <= 0) {
+            this.comboCountdown = 0;
+            this.currentCombo = 0;
+        }
+
         for(let action of localState.actions) {
+            let attack: AttackSlash;
+
             switch(action.action) {
                 case Actions.Move:
                     let moveAction: ActionMove = <ActionMove>action;
@@ -163,10 +185,24 @@ export class PlayerClient extends Entity {
                     //console.log("Move: " + this.game.clientTick + " Pos: " + this.getPosition().x + " | " + this.getPosition().y + " Vel: " + this.getVelocity().x + " | " + this.getVelocity().y);
                     break;
 
-                case Actions.Attack:
-                    let attackAction: ActionAttack = <ActionAttack>action;
-                    let attack = new AttackSlash(this.game, this, attackAction.direction);
+                case Actions.AttackPrimary:
+                    let attackAction = <ActionAttack>action;
+                    attack = new AttackSlash(this.game, new AttackSlashCommon(this, attackAction.direction), AttackSlashSprite);
                     this.setCurrentAttack(attack);
+                    break;
+                case Actions.AttackSecondary:
+                    let attackActionSecondary = <ActionAttackSecondary>action;
+                    attack = new AttackSlash(this.game, new AttackSlashLargeCommon(this, attackActionSecondary.direction, attackActionSecondary.combo), AttackSlashLargeSprite);
+                    this.setCurrentAttack(attack);
+
+                    if(this.currentCombo < 3) {
+                        this.currentCombo++;
+                        this.comboCountdown = 60;
+                    } else {
+                        this.currentCombo = 0;
+                        this.comboCountdown = 0;
+                    }
+
                     break;
             }
 
@@ -203,7 +239,9 @@ export class PlayerClient extends Entity {
             //Update attack
             this.actionAttack = null;
             if(this.currentAttack == null) {
-                if (this.game.input.mousePointer.leftButton.justPressed()) {
+                let left = this.game.input.mousePointer.leftButton.justPressed();
+                let right = this.game.input.mousePointer.rightButton.justPressed();
+                if (left || right) {
                     let clickPoint = new Point(this.game.input.mousePointer.x, this.game.input.mousePointer.y);
                     let attackPoint = this.game.myCam.screenToCamera(clickPoint);
 
@@ -211,7 +249,10 @@ export class PlayerClient extends Entity {
                     angle += 90;
                     //console.log("Angle: " + angle);
 
-                    this.actionAttack = new ActionAttack(angle);
+                    if(left)
+                        this.actionAttack = new ActionAttack(angle);
+                    else
+                        this.actionAttack = new ActionAttackSecondary(angle, this.currentCombo);
                     this.game.sendAction(this.actionAttack);
                 }
             }

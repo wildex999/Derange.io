@@ -1,5 +1,6 @@
 
 import {Vector} from "../Vector";
+import {MovementModifier} from "../movementmodifiers/MovementModifier";
 
 export interface IEntity {
     setPosition(x: number, y: number);
@@ -7,4 +8,6 @@ export interface IEntity {
 
     setVelocity(x: number, y: number);
     getVelocity(): Vector;
+
+    setMovementModifier(modifier: MovementModifier);
 }

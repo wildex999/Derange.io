@@ -1,5 +1,6 @@
 
 export enum Actions {
     Move,
-    Attack
+    AttackPrimary,
+    AttackSecondary
 }

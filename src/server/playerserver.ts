@@ -12,6 +12,8 @@ import {PlayerCommon} from "../common/entities/PlayerCommon";
 import {AttackSlash} from "./attacks/AttackSlash";
 import {ActionAttack} from "../common/actions/ActionAttack";
 import {IAttack} from "../common/attacks/IAttack";
+import {AttackSlashLarge} from "./attacks/AttackSlashLarge";
+import {ActionAttackSecondary} from "../common/actions/ActionAttackSecondary";
 
 @SyncedObject("Player", null, null, null, "onSynced")
 export class PlayerServer extends Entity {
@@ -22,6 +24,8 @@ export class PlayerServer extends Entity {
     actions: {[key: number]: IAction[]}; //Actions synced with others(Attack etc.). Key: Tick number
 
     currentAttack: IAttack;
+    currentCombo = 0;
+    comboCountdown = 0;
 
     clientActions: IAction[];
 
@@ -62,6 +66,11 @@ export class PlayerServer extends Entity {
     public onUpdate() {
         this.preMovement();
 
+        if(this.comboCountdown-- <= 0) {
+            this.comboCountdown = 0;
+            this.currentCombo = 0;
+        }
+
         //Handle actions
         let hasMoved = false;
         for(let action of this.clientActions) {
@@ -98,7 +107,7 @@ export class PlayerServer extends Entity {
                     //console.log("Move: " + client.clientTick + " Pos: " + this.body.position[0] + " | " + this.body.position[1] + " Vel: " + this.body.velocity[0] + " | " + this.body.velocity[1]);
                     break;
 
-                case Actions.Attack:
+                case Actions.AttackPrimary:
                     let attackAction: ActionAttack = <ActionAttack>action;
 
                     if(this.currentAttack != null)
@@ -106,6 +115,23 @@ export class PlayerServer extends Entity {
 
                     this.currentAttack = new AttackSlash(this.world, this, attackAction.direction);
                     this.addSyncedAction(action);
+                    break;
+                case Actions.AttackSecondary:
+                    let attackActionSecondary: ActionAttackSecondary = <ActionAttackSecondary>action;
+                    attackActionSecondary.combo = this.currentCombo;
+
+                    if(this.currentAttack != null)
+                        break;
+
+                    this.currentAttack = new AttackSlashLarge(this.world, this, attackActionSecondary.direction, this.currentCombo);
+                    this.addSyncedAction(action);
+                    if(this.currentCombo < 3) {
+                        this.currentCombo++;
+                        this.comboCountdown = 60;
+                    } else {
+                        this.currentCombo = 0;
+                        this.comboCountdown = 0;
+                    }
                     break;
             }
         }

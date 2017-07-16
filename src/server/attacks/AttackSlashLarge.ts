@@ -1,21 +1,21 @@
 
+import {AttackSlashLargeCommon} from "../../common/attacks/AttackSlashLargeCommon";
 import {World} from "../world";
-import * as p2js from "p2"
-import {AttackSlashCommon} from "../../common/attacks/AttackSlashCommon";
 import {Entity} from "../entities/Entity";
+import * as p2js from "p2"
 import {IDamageable} from "../../common/IDamageable";
 import {Damage} from "../../common/Damage";
 import {DamageType} from "../../common/DamageType";
 
-export class AttackSlash extends AttackSlashCommon {
+export class AttackSlashLarge extends AttackSlashLargeCommon {
     body: p2js.Body;
     world: World;
 
-    push = 0;
-    damage = 1;
+    push = 80;
+    damage = 3;
 
-    constructor(world: World, source: Entity, angle: number) {
-        super(source, angle);
+    constructor(world: World, source: Entity, angle: number, combo: number) {
+        super(source, angle, combo);
 
         this.world = world;
 
