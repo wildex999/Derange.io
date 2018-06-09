@@ -10,3 +10,10 @@ Connecting clients will receive their own player which they can control.
 - Network syncinc works, but is basic. I did experiment some with local prediction, while using an authorative server.
 - Started work on a "click" branch, where I move away from WASD movement and instead use click-to-move, more like DOTA. 
 This was to experiment with avoiding local prediction and correction, instead leaving everything to the server.
+
+How to use:
+- Build Client: npm run buildclient
+- Run Client: Use a server like caddy to host the files, and start index.html in Chrome.
+
+- Build Server: npm run buildserver
+- Run Server: node build/server.js
